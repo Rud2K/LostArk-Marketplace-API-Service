@@ -145,7 +145,7 @@
 
 
 ## 💾 ERD
-<img src="https://github.com/user-attachments/assets/6f73acd7-b3f1-47fa-a679-da3be575995d" width="1000" height="700"/>  
+<img src="https://github.com/user-attachments/assets/6f73acd7-b3f1-47fa-a679-da3be575995d" width="800" height="550"/>  
 
 
 ## 🔗 API 연동 정보  

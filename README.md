@@ -212,7 +212,6 @@
     - 정해진 기한이 지나면 쿠폰 자동 삭제.
 
 ## 🧑‍💻 기술 스택
-
 - **Language**: Java 17
 - **Framework**: Spring Boot 3.3.4
 - **Build Tool**: Gradle
@@ -220,11 +219,12 @@
     - **Production**: MariaDB
     - **Development**: H2 Database
 - **ORM**: JPA (Java Persistence API)
-- **Library**: Lombok, org.json
+- **Library**: Lombok, Hibernate Validator
 - **Security**: Spring Security, JWT (JSON Web Token)
 - **Cache**: Redis (Store 정보 캐시 및 장바구니 세션 유지)
 - **Batch Processing**: Spring Scheduler (Batch 작업으로 Store 정보 주기적 갱신)
 - **Event Handling**: Spring Event Listener (포인트 적립 및 기타 이벤트 처리)
+- **Test**: Junit5
 - **Server**: Embedded Tomcat
 - **Open API**: LostArk Open API (캐릭터, 거래소 정보 연동)
 - **IDE**: Eclipse

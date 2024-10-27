@@ -160,7 +160,7 @@
 7. **레벨 제한 상품 관리**: 특정 레벨 이상 접근 가능한 상품 제공
 
 ## 💾 ERD
-<img src="https://github.com/user-attachments/assets/ae048364-6cd5-43f3-bea7-c85799684e66" width="800" height="550"/>  
+<img src="https://github.com/user-attachments/assets/6ef8d592-d70f-4e2e-8459-e56b48d68f60" width="800" height="550"/>  
 
 ## 🔗 API 연동 정보  
 - **LostArk Open API**를 활용해 **캐릭터 정보**와 **거래소 정보**를 불러옵니다.  

@@ -25,8 +25,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import com.lostark.marketplace.exception.LostArkMarketplaceException;
 import com.lostark.marketplace.model.UserDto;
 import com.lostark.marketplace.model.constant.UserRole;
@@ -36,7 +34,6 @@ import com.lostark.marketplace.persist.entity.UserEntity;
 import com.lostark.marketplace.service.LostArkApiService;
 import com.lostark.marketplace.util.JwtUtil;
 import com.lostark.marketplace.util.PasswordGenerator;
-import jakarta.servlet.http.HttpServletRequest;
 
 class UserServiceImplTest {
   
@@ -141,33 +138,17 @@ class UserServiceImplTest {
   @Test
   @DisplayName("signUp() 실패 케이스 - 중복된 유저 이름")
   void signUp_Failure_DuplicateUsername() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
+    when(this.userRepository.existsByUsername(signUpRequest.getUsername())).thenReturn(true);
     
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      when(this.userRepository.existsByUsername(signUpRequest.getUsername())).thenReturn(true);
-      
-      assertThrows(LostArkMarketplaceException.class, () -> this.userService.signUp(signUpRequest));
-    }
+    assertThrows(LostArkMarketplaceException.class, () -> this.userService.signUp(signUpRequest));
   }
   
   @Test
   @DisplayName("signUp() 실패 케이스 - 중복된 유저 이메일")
   void signUp_Failure_DuplicateEmail() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
+    when(this.userRepository.existsByEmail(signUpRequest.getEmail())).thenReturn(true);
     
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      when(this.userRepository.existsByEmail(signUpRequest.getEmail())).thenReturn(true);
-      
-      assertThrows(LostArkMarketplaceException.class, () -> this.userService.signUp(signUpRequest));
-    }
+    assertThrows(LostArkMarketplaceException.class, () -> this.userService.signUp(signUpRequest));
   }
   
   @Test
@@ -191,52 +172,28 @@ class UserServiceImplTest {
   @Test
   @DisplayName("signIn() 실패 케이스 - 유저 미존재")
   void signIn_Faileure_UserNotFound() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
+    when(this.userRepository.findByUsername(signInRequest.getUsername())).thenReturn(Optional.empty());
     
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      when(this.userRepository.findByUsername(signInRequest.getUsername())).thenReturn(Optional.empty());
-      
-      assertThrows(LostArkMarketplaceException.class, () -> this.userService.signIn(signInRequest));
-    }
+    assertThrows(LostArkMarketplaceException.class, () -> this.userService.signIn(signInRequest));
   }
   
   @Test
   @DisplayName("signIn() 실패 케이스 - 비밀번호 검증 실패")
   void signIn_Failure_IncorrectPassword() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
+    when(this.userRepository.findByUsername(signInRequest.getUsername())).thenReturn(Optional.of(testUser));
+    when(this.passwordEncoder.matches(signInRequest.getPassword(), testUser.getPassword())).thenReturn(false);
     
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      when(this.userRepository.findByUsername(signInRequest.getUsername())).thenReturn(Optional.of(testUser));
-      when(this.passwordEncoder.matches(signInRequest.getPassword(), testUser.getPassword())).thenReturn(false);
-      
-      assertThrows(LostArkMarketplaceException.class, () -> this.userService.signIn(signInRequest));
-    }
+    assertThrows(LostArkMarketplaceException.class, () -> this.userService.signIn(signInRequest));
   }
   
   @Test
   @DisplayName("signIn() 실패 케이스 - JWT 생성 실패")
   void signIn_Failure_Authentication() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
+    when(this.userRepository.findByUsername(signInRequest.getUsername())).thenReturn(Optional.of(testUser));
+    when(this.passwordEncoder.matches(signInRequest.getPassword(), testUser.getPassword())).thenReturn(true);
+    when(this.authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("Invalid credentials"));
     
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      when(this.userRepository.findByUsername(signInRequest.getUsername())).thenReturn(Optional.of(testUser));
-      when(this.passwordEncoder.matches(signInRequest.getPassword(), testUser.getPassword())).thenReturn(true);
-      when(this.authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("Invalid credentials"));
-      
-      assertThrows(LostArkMarketplaceException.class, () -> this.userService.signIn(signInRequest));
-    }
+    assertThrows(LostArkMarketplaceException.class, () -> this.userService.signIn(signInRequest));
   }
   
   @Test
@@ -252,17 +209,9 @@ class UserServiceImplTest {
   @Test
   @DisplayName("getProfile() 실패 케이스 - 유저 미존재")
   void getProfile_Failure_UserNotFound() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
+    when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.empty());
     
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.empty());
-      
-      assertThrows(LostArkMarketplaceException.class, () -> this.userService.getProfile("testUser"));
-    }
+    assertThrows(LostArkMarketplaceException.class, () -> this.userService.getProfile("testUser"));
   }
   
   @Test
@@ -281,17 +230,9 @@ class UserServiceImplTest {
   @Test
   @DisplayName("updateUserCurrencyByAdmin() 실패 케이스 - 유저 미존재")
   void updateUserCurrencyByAdmin_Failure_UserNotFound() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
+    when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.empty());
     
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.empty());
-      
-      assertThrows(LostArkMarketplaceException.class, () -> this.userService.updateUserCurrencyByAdmin(999L, updateCurrencyRequest));
-    }
+    assertThrows(LostArkMarketplaceException.class, () -> this.userService.updateUserCurrencyByAdmin(999L, updateCurrencyRequest));
   }
   
   @Test
@@ -307,38 +248,22 @@ class UserServiceImplTest {
   @Test
   @DisplayName("updateEmail() 실패 케이스 - 유저 미존재")
   void updateEmail_Failure_UserNotFound() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
+    when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.empty());
     
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.empty());
-      
-      assertThrows(LostArkMarketplaceException.class, () -> this.userService.updateEmail("testUser", updateEmailRequest));
-    }
+    assertThrows(LostArkMarketplaceException.class, () -> this.userService.updateEmail("testUser", updateEmailRequest));
   }
   
   @Test
   @DisplayName("updateEmail() 실패 케이스 - 이메일 검증 실패")
   void updateEmail_Failure_IncorrectEmail() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
+    when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.of(testUser));
     
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.of(testUser));
-      
-      UserDto.UpdateEmailRequest request = UserDto.UpdateEmailRequest.builder()
-          .oldEmail("incorrect@example.com")
-          .newEmail("newEmail@example.com")
-          .build();
-      
-      assertThrows(LostArkMarketplaceException.class, () -> this.userService.updateEmail("testUser", request));
-    }
+    UserDto.UpdateEmailRequest request = UserDto.UpdateEmailRequest.builder()
+        .oldEmail("incorrect@example.com")
+        .newEmail("newEmail@example.com"
+            ).build();
+    
+    assertThrows(LostArkMarketplaceException.class, () -> this.userService.updateEmail("testUser", request));
   }
   
   @Test
@@ -357,95 +282,56 @@ class UserServiceImplTest {
   @Test
   @DisplayName("changePassword() 실패 케이스 - 유저 미존재")
   void changePassword_Failure_UserNotFound() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
+    when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.empty());
     
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.empty());
-      
-      assertThrows(LostArkMarketplaceException.class, () -> this.userService.changePassword("testUser", changePasswordRequest));
-    }
+    assertThrows(LostArkMarketplaceException.class, () -> this.userService.changePassword("testUser", changePasswordRequest));
   }
   
   @Test
   @DisplayName("changePassword() 실패 케이스 - 기존 비밀번호 검증 실패")
   void changePassword_Failure_IncorrectOldPassword() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
+    when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.of(testUser));
+    when(this.passwordEncoder.matches("password123", testUser.getPassword())).thenReturn(false);
     
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.of(testUser));
-      when(this.passwordEncoder.matches("password123", testUser.getPassword())).thenReturn(false);
-      
-      assertThrows(LostArkMarketplaceException.class, () -> this.userService.changePassword("testUser", changePasswordRequest));
-    }
+    assertThrows(LostArkMarketplaceException.class, () -> this.userService.changePassword("testUser", changePasswordRequest));
   }
   
   @Test
   @DisplayName("resetPassword() 성공 케이스 - 비밀번호 초기화 후 변경")
   void resetPassword_Success() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
-    
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
+    try (MockedStatic<PasswordGenerator> mockedPasswordGenerator = mockStatic(PasswordGenerator.class)) {
+      when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.of(testUser));
+      when(PasswordGenerator.generateRandomPassword(16)).thenReturn(generatedPassword);
+      when(this.passwordEncoder.encode(generatedPassword)).thenReturn(encodedPassword);
       
-      try (MockedStatic<PasswordGenerator> mockedPasswordGenerator = mockStatic(PasswordGenerator.class)) {
-        when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.of(testUser));
-        when(PasswordGenerator.generateRandomPassword(16, "/testURI")).thenReturn(generatedPassword);
-        when(this.passwordEncoder.encode(generatedPassword)).thenReturn(encodedPassword);
-        
-        String result = this.userService.resetPassword(testUser.getUsername());
-        
-        assertEquals(generatedPassword, result);
-        assertEquals(encodedPassword, testUser.getPassword());
-        verify(userRepository, times(1)).save(testUser);
-      }
+      String result = this.userService.resetPassword(testUser.getUsername());
+      
+      assertEquals(generatedPassword, result);
+      assertEquals(encodedPassword, testUser.getPassword());
+      verify(userRepository, times(1)).save(testUser);
     }
   }
   
   @Test
   @DisplayName("resetPassword() 실패 케이스 - 유저 미존재")
   void resetPassword_Failure_UserNotFound() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
-    
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
-      
-      try (MockedStatic<PasswordGenerator> mockedPasswordGenerator = mockStatic(PasswordGenerator.class)) {
-        when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.empty());
-        
-        assertThrows(LostArkMarketplaceException.class, () -> this.userService.resetPassword("testUser"));
-      }
+    try (MockedStatic<PasswordGenerator> mockedPasswordGenerator = mockStatic(PasswordGenerator.class)) {
+      when(this.userRepository.findByUsername("testUser")).thenReturn(Optional.empty());
+
+      assertThrows(LostArkMarketplaceException.class, () -> this.userService.resetPassword("testUser"));
     }
   }
   
   @Test
   @DisplayName("resetPassword() 실패 케이스 - 랜덤 비밀번호 생성 실패")
   void resetPassword_Failure_PasswordGenerationException() {
-    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-    when(mockRequest.getRequestURI()).thenReturn("/testURI");
-    ServletRequestAttributes mockAttributes = new ServletRequestAttributes(mockRequest);
-    
-    try (MockedStatic<RequestContextHolder> mockStatic = mockStatic(RequestContextHolder.class)) {
-      mockStatic.when(RequestContextHolder::currentRequestAttributes).thenReturn(mockAttributes);
+    try (MockedStatic<PasswordGenerator> mockedPasswordGenerator = mockStatic(PasswordGenerator.class)) {
+      when(this.userRepository.findByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
       
-      try (MockedStatic<PasswordGenerator> mockedPasswordGenerator = mockStatic(PasswordGenerator.class)) {
-        when(this.userRepository.findByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
-        mockedPasswordGenerator.when(() -> PasswordGenerator.generateRandomPassword(16, "/testURI"))
+      mockedPasswordGenerator.when(() -> PasswordGenerator.generateRandomPassword(16))
           .thenThrow(new RuntimeException("비밀번호 생성 실패"));
-        
-        assertThrows(LostArkMarketplaceException.class, () -> this.userService.resetPassword("testUser"));
-      }
+      
+      assertThrows(RuntimeException.class, () -> this.userService.resetPassword("testUser"));
     }
   }
   

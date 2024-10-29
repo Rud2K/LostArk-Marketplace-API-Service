@@ -19,13 +19,12 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleCustomException(LostArkMarketplaceException e, HttpServletRequest request) {
     ErrorResponse errorResponse = ErrorResponse.builder()
         .timestamp(e.getTimestamp())
-        .status(e.getStatus())
-        .error(e.getHttpStatusCode().getMessage())
+        .message(e.getHttpStatusCode().getMessage())
         .path(request.getRequestURI())
         .build();
-    return ResponseEntity.status(e.getStatus()).body(errorResponse);
+    return ResponseEntity.status(e.getHttpStatusCode().getStatus()).body(errorResponse);
   }
-
+  
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
     Map<String, String> fieldErrors = new HashMap<>();
@@ -34,12 +33,21 @@ public class GlobalExceptionHandler {
     }
     ErrorResponse errorResponse = ErrorResponse.builder()
         .timestamp(LocalDateTime.now())
-        .status(HttpStatus.BAD_REQUEST.value())
-        .error("Validation Failed")
+        .message("Validation Failed")
         .path(request.getRequestURI())
         .fieldErrors(fieldErrors)
         .build();
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+  }
+  
+  @ExceptionHandler(RuntimeException.class)
+  public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException e, HttpServletRequest request) {
+    ErrorResponse errorResponse = ErrorResponse.builder()
+        .timestamp(LocalDateTime.now())
+        .message(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
+        .path(request.getRequestURI())
+        .build();
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
   }
   
 }

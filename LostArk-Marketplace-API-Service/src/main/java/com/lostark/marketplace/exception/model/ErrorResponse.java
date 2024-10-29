@@ -15,9 +15,7 @@ public class ErrorResponse {
   
   private LocalDateTime timestamp; // 에러 발생 시각
   
-  private int status; // HTTP 상태 코드
-  
-  private String error; // 에러 메시지
+  private String message; // 에러 메시지
   
   private String path; // 에러 발생 경로
   

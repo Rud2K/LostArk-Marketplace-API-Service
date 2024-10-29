@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +27,7 @@ import com.lostark.marketplace.service.LostArkApiService;
 import lombok.RequiredArgsConstructor;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class LostArkApiServiceImpl implements LostArkApiService {
   
@@ -39,7 +41,7 @@ public class LostArkApiServiceImpl implements LostArkApiService {
   private final MarketRepository marketRepository;
   
   @Override
-  public List<CharacterInfoDto> getCharacterData(String characterName, String currentRequestURI) {
+  public List<CharacterInfoDto> getCharacterData(String characterName) {
     // HTTP 헤더 설정
     HttpHeaders headers = new HttpHeaders();
     headers.set("Authorization", "Bearer " + this.apiKey);
@@ -55,9 +57,9 @@ public class LostArkApiServiceImpl implements LostArkApiService {
           HttpMethod.GET,
           entity,
           String.class);
-      return this.parseCharacterInfoList(response.getBody(), currentRequestURI);
+      return this.parseCharacterInfoList(response.getBody());
     } catch (Exception e) {
-      throw new LostArkMarketplaceException(HttpStatusCode.SERVICE_UNAVAILABLE, currentRequestURI);
+      throw new LostArkMarketplaceException(HttpStatusCode.SERVICE_UNAVAILABLE);
     }
   }
   
@@ -65,11 +67,10 @@ public class LostArkApiServiceImpl implements LostArkApiService {
    * JSON 데이터를 파싱하여 List<CharacterInfo> 객체로 변환하는 메서드
    * 
    * @param jsonString API 응답 데이터
-   * @param currentRequestURI 현재 요청의 URI
    * @return List<CharacterInfo> 객체
    * @throws LostarkMarketplaceException JSON 파싱 실패 시 발생
    */
-  private List<CharacterInfoDto> parseCharacterInfoList(String jsonString, String currentRequestURI) {
+  private List<CharacterInfoDto> parseCharacterInfoList(String jsonString) {
     try {
       ObjectMapper objectMapper = new ObjectMapper();
       List<CharacterInfoDto> characterInfoDtos = objectMapper.readValue(
@@ -82,7 +83,7 @@ public class LostArkApiServiceImpl implements LostArkApiService {
       
       return characterInfoDtos;
     } catch (Exception e) {
-      throw new LostArkMarketplaceException(HttpStatusCode.SERVICE_UNAVAILABLE, currentRequestURI);
+      throw new LostArkMarketplaceException(HttpStatusCode.SERVICE_UNAVAILABLE);
     }
   }
   
@@ -90,21 +91,28 @@ public class LostArkApiServiceImpl implements LostArkApiService {
   @Scheduled(fixedRate = 300000) // 5분마다 실행 (300000밀리초)
   public void updateMarketData() {
     // 마켓 정보를 가져와서 저장
-    List<MarketResponseDto> marketDataList = this.getMarketData("/scheduled/updateMarketData");
+    List<MarketResponseDto> marketDataList = this.getMarketData();
     this.saveMarketDataToDatabase(marketDataList);
   }
   
   @Override
-  public List<MarketResponseDto> getMarketData(String currentRequestURI) {
+  public List<MarketResponseDto> getMarketData() {
     // 요청 객체 생성
-    ItemRequestDto materialRequest = new ItemRequestDto("GRADE", 50000, "", 3, "", "", 1, "ASC");
-    ItemRequestDto engravingRequest = new ItemRequestDto("GRADE", 40000, "", null, "전설", "", 1, "ASC");
+    ItemRequestDto tierFourMaterialRequest = new ItemRequestDto("GRADE", 50000, "", 3, "", "", 1, "ASC");
+    ItemRequestDto tierFiveMaterialRequest = new ItemRequestDto("GRADE", 50000, "", 4, "", "", 1, "ASC");
+    ItemRequestDto legendaryEnravingRecipeRequest = new ItemRequestDto("GRADE", 40000, "", null, "전설", "", 1, "ASC");
+    ItemRequestDto relicEnravingRecipeRequest = new ItemRequestDto("GRADE", 40000, "", null, "유물", "", 1, "ASC");
     
     // 각 요청에 대한 결과를 저장할 List 생성
     List<MarketResponseDto> marketResponses = new ArrayList<>();
     
     // 각각의 요청을 반복적으로 호출
-    for (ItemRequestDto request : List.of(materialRequest, engravingRequest)) {
+    for (ItemRequestDto request : List.of(
+        tierFourMaterialRequest,
+        tierFiveMaterialRequest,
+        legendaryEnravingRecipeRequest,
+        relicEnravingRecipeRequest)) {
+      
       // 페이지 수를 확인을 위한 초기 변수 설정
       int pageNo = 1;
       int totalPages;
@@ -128,14 +136,14 @@ public class LostArkApiServiceImpl implements LostArkApiService {
               String.class);
           
           // JSON 응답 데이터를 파싱하여 MarketResponseDto로 변환
-          MarketResponseDto marketData = this.parseMarketData(response.getBody(), currentRequestURI);
+          MarketResponseDto marketData = this.parseMarketData(response.getBody());
           marketResponses.add(marketData);
           
           // 전체 페이지 수 설정
           totalPages = marketData.getPageSize();
           pageNo++;
         } catch (Exception e) {
-          throw new LostArkMarketplaceException(HttpStatusCode.SERVICE_UNAVAILABLE, currentRequestURI);
+          throw new LostArkMarketplaceException(HttpStatusCode.SERVICE_UNAVAILABLE);
         }
       } while (pageNo <= totalPages);
     }
@@ -147,16 +155,15 @@ public class LostArkApiServiceImpl implements LostArkApiService {
    * JSON 데이터를 파싱하여 MarketResponseDto 객체로 변환하는 메서드.
    * 
    * @param jsonString API 응답 데이터
-   * @param currentRequestURI 현재 요청의 URI
    * @return MarketResponseDto 거래소 아이템 데이터 리스트
    * @throws LostarkMarketplaceException JSON 파싱 실패 시 발생
    */
-  private MarketResponseDto parseMarketData(String jsonString, String currentRequestURI) {
+  private MarketResponseDto parseMarketData(String jsonString) {
     try {
       ObjectMapper objectMapper = new ObjectMapper();
       return objectMapper.readValue(jsonString, MarketResponseDto.class);
     } catch (Exception e) {
-      throw new LostArkMarketplaceException(HttpStatusCode.SERVICE_UNAVAILABLE, currentRequestURI);
+      throw new LostArkMarketplaceException(HttpStatusCode.SERVICE_UNAVAILABLE);
     }
   }
   
@@ -166,33 +173,36 @@ public class LostArkApiServiceImpl implements LostArkApiService {
    * @param marketDataList 가져온 마켓 데이터 목록
    */
   private void saveMarketDataToDatabase(List<MarketResponseDto> marketDataList) {
+    List<MarketEntity> entitiesToSave = new ArrayList<>();
+    List<MarketEntity> entitiesToUpdate = new ArrayList<>();
+    
     marketDataList.forEach(data -> {
       data.getItems().forEach(item -> {
-        // 기존 데이터 조회
-        Optional<MarketEntity> existingEntity = 
-            this.marketRepository.findByItemNameAndItemGrade(
-                item.getName(),
-                item.getGrade());
+        Optional<MarketEntity> existingEntity =
+            this.marketRepository.findByItemNameAndItemGrade(item.getName(), item.getGrade());
         
         if (existingEntity.isPresent()) {
-          // 데이터가 이미 존재하는 경우, 가격 또는 기타 필요한 정보가 다르면 업데이트
+          // 기존 데이터가 존재하는 경우, 변경된 항목이 있을 때만 업데이트 리스트에 추가
           MarketEntity entityToUpdate = existingEntity.get();
           
-          if (!entityToUpdate.getYDayAvgPrice().equals(item.getYDayAvgPrice()) ||
-              !entityToUpdate.getRecentPrice().equals(item.getRecentPrice()) ||
-              !entityToUpdate.getCurrentMinPrice().equals(item.getCurrentMinPrice())) {
+          if (!entityToUpdate.getYDayAvgPrice().equals(item.getYDayAvgPrice())
+              || !entityToUpdate.getRecentPrice().equals(item.getRecentPrice())
+              || !entityToUpdate.getCurrentMinPrice().equals(item.getCurrentMinPrice())) {
             
             entityToUpdate.setYDayAvgPrice(item.getYDayAvgPrice());
             entityToUpdate.setRecentPrice(item.getRecentPrice());
             entityToUpdate.setCurrentMinPrice(item.getCurrentMinPrice());
             
-            marketRepository.save(entityToUpdate);
+            entitiesToUpdate.add(entityToUpdate);
           }
         } else {
-          // 새로운 데이터인 경우, 삽입
-          marketRepository.save(MarketEntity.builder()
+          // 새로운 데이터인 경우, 삽입 리스트에 추가
+          entitiesToSave.add(MarketEntity.builder()
               .itemName(item.getName())
               .itemGrade(item.getGrade())
+              .icon(item.getIcon())
+              .bundleCount(item.getBundleCount())
+              .tradeRemainCount(item.getTradeRemainCount())
               .yDayAvgPrice(item.getYDayAvgPrice())
               .recentPrice(item.getRecentPrice())
               .currentMinPrice(item.getCurrentMinPrice())
@@ -200,6 +210,16 @@ public class LostArkApiServiceImpl implements LostArkApiService {
         }
       });
     });
+    
+    // Batch Insert
+    if (!entitiesToSave.isEmpty()) {
+      marketRepository.saveAll(entitiesToSave);
+    }
+    
+    // Batch Update
+    if (!entitiesToUpdate.isEmpty()) {
+      marketRepository.saveAll(entitiesToUpdate);
+    }
   }
   
 }

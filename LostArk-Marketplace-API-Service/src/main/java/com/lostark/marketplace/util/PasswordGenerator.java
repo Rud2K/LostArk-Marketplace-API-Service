@@ -18,7 +18,7 @@ public class PasswordGenerator {
    * @param requestURI 클라이언트 요청 URI
    * @return 랜덤하게 생성된 비밀번호
    */
-  public static String generateRandomPassword(final int passwordLength, String requestURI) {
+  public static String generateRandomPassword(final int passwordLength) {
     StringBuilder password = new StringBuilder();
     
     // 각 카테고리에서 최소 하나씩 선택

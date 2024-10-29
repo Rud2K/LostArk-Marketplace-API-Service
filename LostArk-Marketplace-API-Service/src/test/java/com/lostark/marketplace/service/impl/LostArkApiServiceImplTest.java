@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -47,7 +48,6 @@ class LostArkApiServiceImplTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
   
   private String testCharacterName;
-  private String testCurrentRequestURI;
   
   @BeforeEach
   void setup() {
@@ -55,9 +55,6 @@ class LostArkApiServiceImplTest {
     
     // 테스트 캐릭터 이름 값 설정
     testCharacterName = "인파깽";
-    
-    // 테스트 응답 URI 설정
-    testCurrentRequestURI = "/testURI";
   }
   
   @Test
@@ -75,7 +72,7 @@ class LostArkApiServiceImplTest {
         eq(String.class))
     ).thenReturn(ResponseEntity.ok(mockJsonResponse));
     
-    List<CharacterInfoDto> result = this.lostArkApiServiceImpl.getCharacterData(testCharacterName, testCurrentRequestURI);
+    List<CharacterInfoDto> result = this.lostArkApiServiceImpl.getCharacterData(testCharacterName);
     
     assertNotNull(result);
     assertEquals(1, result.size());
@@ -95,10 +92,9 @@ class LostArkApiServiceImplTest {
     
     LostArkMarketplaceException exception = assertThrows(
         LostArkMarketplaceException.class,
-        () -> this.lostArkApiServiceImpl.getCharacterData(testCharacterName, testCurrentRequestURI));
+        () -> this.lostArkApiServiceImpl.getCharacterData(testCharacterName));
     
-    assertEquals(503, exception.getStatus());
-    assertEquals(testCurrentRequestURI, exception.getPath());
+    assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), exception.getHttpStatusCode().getStatus().value());
   }
   
   @Test
@@ -128,10 +124,10 @@ class LostArkApiServiceImplTest {
         eq(String.class))
     ).thenReturn(ResponseEntity.ok(mockJsonResponse));
     
-    List<MarketResponseDto> result = this.lostArkApiServiceImpl.getMarketData(testCurrentRequestURI);
+    List<MarketResponseDto> result = this.lostArkApiServiceImpl.getMarketData();
     
     assertNotNull(result);
-    assertEquals(2, result.size());
+    assertEquals(4, result.size());
     assertEquals("파괴석 결정", result.get(0).getItems().get(0).getName());
     assertEquals("일반", result.get(0).getItems().get(0).getGrade());
     assertEquals("https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_6_105.png", result.get(0).getItems().get(0).getIcon());
@@ -152,10 +148,9 @@ class LostArkApiServiceImplTest {
     
     LostArkMarketplaceException exception = assertThrows(
         LostArkMarketplaceException.class,
-        () -> this.lostArkApiServiceImpl.getMarketData(testCurrentRequestURI));
+        () -> this.lostArkApiServiceImpl.getMarketData());
     
-    assertEquals(503, exception.getStatus());
-    assertEquals(testCurrentRequestURI, exception.getPath());
+    assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), exception.getHttpStatusCode().getStatus().value());
   }
 
   @Test
@@ -172,9 +167,9 @@ class LostArkApiServiceImplTest {
     
     LostArkMarketplaceException exception = assertThrows(
         LostArkMarketplaceException.class,
-        () -> this.lostArkApiServiceImpl.getMarketData(testCurrentRequestURI));
+        () -> this.lostArkApiServiceImpl.getMarketData());
     
-    assertEquals(503, exception.getStatus());
+    assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), exception.getHttpStatusCode().getStatus().value());
   }
   
 }

@@ -18,5 +18,15 @@
     "name": "lostark.base-url",
     "type": "java.lang.String",
     "description": "A description for 'lostark.base-url'"
+  },
+  {
+    "name": "spring.elasticsearch.rest.ssl.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.elasticsearch.rest.ssl.enabled'"
+  },
+  {
+    "name": "spring.elasticsearch.api-key",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.elasticsearch.api-key'"
   }
 ]}

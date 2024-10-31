@@ -1,28 +1,23 @@
 ## 🛠️ 작업 내용 (What)
-### 변경된 작업 내용을 간단하게 작성
 - 주요 변경 사항
 
 <br>
 
 ## 📌 작업 이유 (Why)
-### 이 작업이 왜 필요한지 설명
 - 변경이 필요한 이유
 
 <br>
 
 ## ✨ 변경 사항 (Changes)
 - 주요 기능 추가/수정 내용
-- 관련 모듈 설명
-- 로직 변경 사항 요약
 
 <br>
 
 ## ✅ 테스트 (Tests)
-- [ ] 유닛 테스트가 통과하였음
-- [ ] 기능 테스트가 통과하였음
+- [ ] API 테스트
+- [ ] 테스트 코드 작성
 - 테스트 항목:
-  - 추가된 테스트 항목에 대한 간단한 설명
-  - 테스트 방식 및 사용한 테스트 도구
+  - 테스트 완료한 항목들 설명
 
 <br>
 
@@ -62,19 +57,23 @@ lostark:
   api-key: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IktYMk40TkRDSTJ5NTA5NWpjTWk5TllqY2lyZyIsImtpZCI6IktYMk40TkRDSTJ5NTA5NWpjTWk5TllqY2lyZyJ9.eyJpc3MiOiJodHRwczovL2x1ZHkuZ2FtZS5vbnN0b3ZlLmNvbSIsImF1ZCI6Imh0dHBzOi8vbHVkeS5nYW1lLm9uc3RvdmUuY29tL3Jlc291cmNlcyIsImNsaWVudF9pZCI6IjEwMDAwMDAwMDA1NjQ4MTAifQ.iC4hcATlcDqkeQcim3-pdoC1sKRZx4fGufPZHBKGA7-uCArfxlT-LtOhSB5iKZWUPBmg0RfxGGrUNC64PQABb8cRNekAq5exgAhq1FluJf02St2JzLTIqElUTXiiwgaOJcScTIYqjxAex4jHuZ6nFevdXFxUv2pn_Ql2a32RWA_RSz-NEA93VBwQEk3Ch2lLOyWfjI4iNc8_2p-5m3TmuKxalsRH2GGICQidZQ7qK_U7rt0p6zZ4FTtpAIh_zSscdQJo7yiAYB5Xv-m1q2SBOLv2wY9A9hv-itzTpU_ZLTF_F3aTaZfjQBsInGVYAj8DVk31_mXUGf8VVwmHpqAGgA
   base-url: https://developer-lostark.game.onstove.com
 
-# dev 프로파일: H2 데이터베이스 사용
 spring:
+  elasticsearch:
+    uris: https://localhost:9200
+    api-key: dHlJcjRKSUJLOFJxZ1cxM3Y0VXE6LTF5LWVXV3RSYWlFSnIwVVp0SkhKZw==
+    
+# dev 프로파일: H2 데이터베이스 사용
   profiles:
     active: dev
-
-cache:
+    
+  cache:
     type: redis
     
   data:
     redis:
       host: localhost
       port: 6379
-
+    
   datasource:
     url: jdbc:h2:mem:test
     driver-class-name: org.h2.Driver

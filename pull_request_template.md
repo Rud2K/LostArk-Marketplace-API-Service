@@ -62,6 +62,11 @@ spring:
   elasticsearch:
     uris: https://localhost:9200
     api-key: dHlJcjRKSUJLOFJxZ1cxM3Y0VXE6LTF5LWVXV3RSYWlFSnIwVVp0SkhKZw==
+      
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
     
   jpa:
     hibernate:

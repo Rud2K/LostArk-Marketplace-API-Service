@@ -68,11 +68,6 @@ spring:
       ddl-auto: update
     show-sql: true
     
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    
 # dev 프로파일: H2 데이터베이스 사용
   profiles:
     active: dev

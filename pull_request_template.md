@@ -61,13 +61,8 @@ lostark:
 spring:
   elasticsearch:
     uris: https://localhost:9200
-    api-key: dHlJcjRKSUJLOFJxZ1cxM3Y0VXE6LTF5LWVXV3RSYWlFSnIwVVp0SkhKZw==
+    api-key: your_elasticsearch_api-key
       
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    
   jpa:
     hibernate:
       ddl-auto: update

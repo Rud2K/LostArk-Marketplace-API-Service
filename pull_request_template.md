@@ -61,18 +61,15 @@ spring:
   elasticsearch:
     uris: https://localhost:9200
     api-key: dHlJcjRKSUJLOFJxZ1cxM3Y0VXE6LTF5LWVXV3RSYWlFSnIwVVp0SkhKZw==
+      
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
     
 # dev 프로파일: H2 데이터베이스 사용
   profiles:
     active: dev
-    
-  cache:
-    type: redis
-    
-  data:
-    redis:
-      host: localhost
-      port: 6379
     
   datasource:
     url: jdbc:h2:mem:test
@@ -84,9 +81,4 @@ spring:
     console:
       enabled: true
       path: /h2-console
-      
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
 ```

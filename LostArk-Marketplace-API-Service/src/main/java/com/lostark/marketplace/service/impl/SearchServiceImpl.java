@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import com.lostark.marketplace.exception.LostArkMarketplaceException;
+import com.lostark.marketplace.exception.model.HttpStatusCode;
 import com.lostark.marketplace.model.ItemResponseDto;
 import com.lostark.marketplace.model.MarketResponseDto;
 import com.lostark.marketplace.persist.MarketRepository;
@@ -38,18 +40,19 @@ public class SearchServiceImpl implements SearchService {
                 .value("*" + keyword.toLowerCase() + "*")))
         .size(10));
     
+    // Elasticsearch에 검색 요청 보내기
+    SearchResponse<MarketEntity> searchResponse;
     try {
-      // Elasticsearch에 검색 요청 보내기
-      SearchResponse<MarketEntity> searchResponse = elasticsearchClient.search(searchRequest, MarketEntity.class);
-      
-      // 검색 결과에서 itemName 추출
-      return searchResponse.hits().hits().stream()
-          .map(Hit::source)
-          .map(MarketEntity::getItemName)
-          .collect(Collectors.toList());
+      searchResponse = this.elasticsearchClient.search(searchRequest, MarketEntity.class);
     } catch (IOException e) {
-      throw new RuntimeException("Failed to fetch autocomplete suggestions from Elasticsearch", e);
+      throw new LostArkMarketplaceException(HttpStatusCode.INTERNAL_SERVER_ERROR);
     }
+    
+    // 검색 결과에서 itemName 추출
+    return searchResponse.hits().hits().stream()
+        .map(Hit::source)
+        .map(MarketEntity::getItemName)
+        .collect(Collectors.toList());
   }
   
   @Override
@@ -83,7 +86,7 @@ public class SearchServiceImpl implements SearchService {
     
     Page<MarketEntity> searchResult = this.marketRepository.findAll(specification, pageable);
     
-    MarketResponseDto response = MarketResponseDto.builder()
+    return MarketResponseDto.builder()
         .pageNo(searchResult.getNumber() + 1)
         .pageSize(searchResult.getSize())
         .totalCount((int) searchResult.getTotalElements())
@@ -101,8 +104,6 @@ public class SearchServiceImpl implements SearchService {
             .build())
             .collect(Collectors.toList()))
         .build();
-    
-    return response;
   }
   
 }

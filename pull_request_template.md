@@ -28,6 +28,7 @@
 
 ## ⚙️ 설정 파일 (application.yml)
 이 프로젝트는 application.yml 파일을 Git에 포함하지 않습니다.
+
 프로젝트를 실행하기 위해서는 다음과 같이 설정 파일을 로컬에 추가해야 합니다.
 
 1. src/main/resources/ 디렉토리 안에 application.yml 파일을 생성합니다.
@@ -62,17 +63,14 @@ spring:
     uris: https://localhost:9200
     api-key: dHlJcjRKSUJLOFJxZ1cxM3Y0VXE6LTF5LWVXV3RSYWlFSnIwVVp0SkhKZw==
     
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    
 # dev 프로파일: H2 데이터베이스 사용
   profiles:
     active: dev
-    
-  cache:
-    type: redis
-    
-  data:
-    redis:
-      host: localhost
-      port: 6379
     
   datasource:
     url: jdbc:h2:mem:test
@@ -84,9 +82,4 @@ spring:
     console:
       enabled: true
       path: /h2-console
-      
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
 ```

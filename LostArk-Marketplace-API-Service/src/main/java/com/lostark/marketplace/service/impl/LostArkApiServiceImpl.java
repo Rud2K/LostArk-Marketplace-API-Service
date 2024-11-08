@@ -5,8 +5,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -18,17 +18,18 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lostark.marketplace.event.MarketDataSavedEvent;
 import com.lostark.marketplace.exception.LostArkMarketplaceException;
 import com.lostark.marketplace.exception.model.HttpStatusCode;
 import com.lostark.marketplace.model.CharacterInfoDto;
 import com.lostark.marketplace.model.ItemRequestDto;
+import com.lostark.marketplace.model.ItemResponseDto;
 import com.lostark.marketplace.model.MarketResponseDto;
 import com.lostark.marketplace.model.constant.ItemType;
 import com.lostark.marketplace.model.constant.LostArkClass;
 import com.lostark.marketplace.persist.MarketRepository;
 import com.lostark.marketplace.persist.entity.MarketEntity;
 import com.lostark.marketplace.service.LostArkApiService;
+import com.lostark.marketplace.service.SearchService;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -42,9 +43,9 @@ public class LostArkApiServiceImpl implements LostArkApiService {
   @Value("${lostark.base-url}")
   private String baseUrl; // API 기본 URL
   
-  private final ApplicationEventPublisher eventPublisher;
-  private final MarketRepository marketRepository;
   private final RestTemplate restTemplate;
+  private final MarketRepository marketRepository;
+  private final SearchService searchService;
   
   @Override
   public List<CharacterInfoDto> getCharacterData(String characterName) {
@@ -106,6 +107,15 @@ public class LostArkApiServiceImpl implements LostArkApiService {
     // 마켓 정보를 가져와서 저장
     List<MarketResponseDto> marketDataList = this.getMarketData();
     this.saveMarketDataToDatabase(marketDataList);
+    
+    // Trie 초기화
+    List<String> itemNames = marketDataList.stream()
+        .flatMap(responseDto -> responseDto.getItems().stream())
+        .map(ItemResponseDto::getName)
+        .collect(Collectors.toList());
+    
+    this.searchService.initTrie(itemNames);
+    System.out.println("자동 완성 Trie 초기화 완료 - 총 " + itemNames.size() + "개의 아이템 추가됨.");
   }
   
   @Override
@@ -195,7 +205,7 @@ public class LostArkApiServiceImpl implements LostArkApiService {
   }
   
   /**
-   * 불러온 마켓 데이터를 DB와 Elasticsearch에 저장하는 메서드
+   * 불러온 마켓 데이터를 DB에 저장하는 메서드
    * 
    * @param marketDataList 가져온 마켓 데이터 목록
    */
@@ -249,9 +259,6 @@ public class LostArkApiServiceImpl implements LostArkApiService {
     if (!entitiesToUpdate.isEmpty()) {
       savedEntities.addAll(this.marketRepository.saveAll(entitiesToUpdate));
     }
-    
-    // 저장된 Market 데이터를 Elasticsearch로 전달하기 위해 이벤트 발생
-    this.eventPublisher.publishEvent(new MarketDataSavedEvent(this, savedEntities));
   }
   
 }

@@ -1,24 +1,18 @@
 package com.lostark.marketplace.service.impl;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.Trie;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import com.lostark.marketplace.exception.LostArkMarketplaceException;
-import com.lostark.marketplace.exception.model.HttpStatusCode;
 import com.lostark.marketplace.model.ItemResponseDto;
 import com.lostark.marketplace.model.MarketResponseDto;
 import com.lostark.marketplace.persist.MarketRepository;
 import com.lostark.marketplace.persist.entity.MarketEntity;
 import com.lostark.marketplace.service.SearchService;
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 
@@ -26,32 +20,19 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SearchServiceImpl implements SearchService {
   
-  private final ElasticsearchClient elasticsearchClient;
   private final MarketRepository marketRepository;
+  private final Trie<String, String> trie;
+  
+  @Override
+  public void initTrie(List<String> itemNames) {
+    this.trie.clear();
+    itemNames.forEach(name -> this.trie.put(name, name));
+  }
   
   @Override
   public List<String> autoComplete(String keyword) {
-    // ElasticSearch에서 자동 완성을 위한 검색 요청 생성
-    SearchRequest searchRequest = SearchRequest.of(s -> s
-        .index("market")
-        .query(q -> q
-            .wildcard(w -> w
-                .field("itemName")
-                .value("*" + keyword.toLowerCase() + "*")))
-        .size(10));
-    
-    // Elasticsearch에 검색 요청 보내기
-    SearchResponse<MarketEntity> searchResponse;
-    try {
-      searchResponse = this.elasticsearchClient.search(searchRequest, MarketEntity.class);
-    } catch (IOException e) {
-      throw new LostArkMarketplaceException(HttpStatusCode.INTERNAL_SERVER_ERROR);
-    }
-    
-    // 검색 결과에서 itemName 추출
-    return searchResponse.hits().hits().stream()
-        .map(Hit::source)
-        .map(MarketEntity::getItemName)
+    return this.trie.prefixMap(keyword).keySet().stream()
+        .limit(5)
         .collect(Collectors.toList());
   }
   
@@ -61,7 +42,6 @@ public class SearchServiceImpl implements SearchService {
       String itemGrade,
       String itemType,
       Pageable pageable) {
-    
     // Specification을 사용해 동적 쿼리 사용
     Specification<MarketEntity> specification = (root, query, criteriaBuilder) -> {
       List<Predicate> predicates = new ArrayList<>();

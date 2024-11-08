@@ -2,14 +2,14 @@ package com.lostark.marketplace.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.List;
+import org.apache.commons.collections4.Trie;
+import org.apache.commons.collections4.trie.PatriciaTrie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,16 +25,8 @@ import com.lostark.marketplace.model.MarketResponseDto;
 import com.lostark.marketplace.model.constant.ItemType;
 import com.lostark.marketplace.persist.MarketRepository;
 import com.lostark.marketplace.persist.entity.MarketEntity;
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
 
 class SearchServiceImplTest {
-  
-  @Mock
-  private ElasticsearchClient elasticsearchClient;
   
   @Mock
   private MarketRepository marketRepository;
@@ -42,6 +34,7 @@ class SearchServiceImplTest {
   @InjectMocks
   private SearchServiceImpl searchServiceImpl;
   
+  private List<String> itemNames;
   private String keyword;
   private String itemName;
   private String itemGrade;
@@ -53,6 +46,11 @@ class SearchServiceImplTest {
   @BeforeEach
   void setup() {
     MockitoAnnotations.openMocks(this);
+    
+    Trie<String, String> trie = new PatriciaTrie<>();
+    this.searchServiceImpl = new SearchServiceImpl(this.marketRepository, trie);
+    
+    this.itemNames = List.of("testItem1", "testItem2", "testItem3");
     
     this.keyword = "test";
     this.itemName = "testItem";
@@ -74,34 +72,36 @@ class SearchServiceImplTest {
     this.mockPage = new PageImpl<>(List.of(this.mockEntity));
   }
   
-  @SuppressWarnings("unchecked")
+  @Test
+  @DisplayName("initTrie() 성공 케이스 - Trie 초기화 성공")
+  void initTrie_Success() {
+    this.searchServiceImpl.initTrie(this.itemNames);
+    
+    assertEquals(3, searchServiceImpl.autoComplete("test").size());
+  }
+  
   @Test
   @DisplayName("autoComplete() 성공 케이스 - 상품 검색 시 검색어 자동 완성 성공")
   void autoComplete_Success() throws IOException {
-    Hit<MarketEntity> hit = mock(Hit.class);
-    when(hit.source()).thenReturn(this.mockEntity);
-    
-    HitsMetadata<MarketEntity> hitsMetadata = mock(HitsMetadata.class);
-    when(hitsMetadata.hits()).thenReturn(List.of(hit));
-    
-    SearchResponse<MarketEntity> mockResponse = mock(SearchResponse.class);
-    when(mockResponse.hits()).thenReturn(hitsMetadata);
-    
-    when(this.elasticsearchClient.search(any(SearchRequest.class), eq(MarketEntity.class))).thenReturn(mockResponse);
+    this.searchServiceImpl.initTrie(this.itemNames);
     
     List<String> result = this.searchServiceImpl.autoComplete(this.keyword);
     
     assertNotNull(result);
-    assertEquals(1, result.size());
-    assertEquals("testItem", result.get(0));
+    assertTrue(result.contains("testItem1"));
+    assertTrue(result.contains("testItem2"));
+    assertEquals(3, result.size());
   }
   
   @Test
-  @DisplayName("autoComplete() 실패 케이스 - ElasticsearchClient.search() 호출 시 입출력 예외 발생")
-  void autoComplete_Failure_ExceptionOccurred() throws IOException {
-    when(this.elasticsearchClient.search(any(SearchRequest.class), eq(MarketEntity.class))).thenThrow(new IOException());
+  @DisplayName("autoComplete() 실패 케이스 - 검색어에 대한 결과 없음")
+  void autoComplete_NoResult() {
+    this.searchServiceImpl.initTrie(List.of("sampleItem1", "sampleItem2"));
     
-    assertThrows(RuntimeException.class, () -> this.searchServiceImpl.autoComplete(keyword));
+    List<String> result = this.searchServiceImpl.autoComplete(this.keyword);
+    
+    assertNotNull(result);
+    assertTrue(result.isEmpty());
   }
   
   @SuppressWarnings("unchecked")

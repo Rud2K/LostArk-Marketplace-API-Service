@@ -26,6 +26,7 @@ import com.lostark.marketplace.exception.LostArkMarketplaceException;
 import com.lostark.marketplace.model.CharacterInfoDto;
 import com.lostark.marketplace.model.ItemResponseDto;
 import com.lostark.marketplace.model.MarketResponseDto;
+import com.lostark.marketplace.model.constant.ItemType;
 import com.lostark.marketplace.persist.MarketRepository;
 
 class LostArkApiServiceImplTest {
@@ -112,6 +113,7 @@ class LostArkApiServiceImplTest {
             .yDayAvgPrice(1.0)
             .recentPrice(1)
             .currentMinPrice(1)
+            .itemType(ItemType.MATERIAL.getDisplayName())
             .build()))
         .build();
     
@@ -134,6 +136,7 @@ class LostArkApiServiceImplTest {
     assertEquals(1.0, result.get(0).getItems().get(0).getYDayAvgPrice());
     assertEquals(1, result.get(0).getItems().get(0).getRecentPrice());
     assertEquals(1, result.get(0).getItems().get(0).getCurrentMinPrice());
+    assertEquals("강화 재료", result.get(0).getItems().get(0).getItemType());
   }
   
   @Test

@@ -26,10 +26,18 @@ public class MarketEntity {
   
   private String itemGrade; // 아이템 등급
   
+  private String icon; // 아이템 아이콘 이미지 파일 경로
+  
+  private Integer bundleCount; // 판매 시 묶음 단위
+  
+  private Integer tradeRemainCount; // 거래 가능 횟수
+  
   private Double yDayAvgPrice; // 어제 기준 평균 가격
   
   private Integer recentPrice; // 최근 판매 가격
   
   private Integer currentMinPrice; // 현재 최저 가격
+  
+  private String itemType; // 아이템 유형 (예: 강화 재료, 각인서 등)
   
 }

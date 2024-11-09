@@ -122,7 +122,6 @@
 - **Database**:
     - **Production**: MariaDB
     - **Development**: H2 Database
-    - **Search Engine**: Elasticsearch
 - **ORM**: JPA (Java Persistence API)
 - **Library**:
     - Lombok

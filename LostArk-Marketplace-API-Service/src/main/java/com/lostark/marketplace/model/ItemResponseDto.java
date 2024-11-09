@@ -1,6 +1,8 @@
 package com.lostark.marketplace.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,6 +12,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonPropertyOrder({
+  "id",
+  "name",
+  "grade",
+  "icon",
+  "bundleCount",
+  "tradeRemainCount",
+  "yDayAvgPrice",
+  "recentPrice",
+  "currentMinPrice",
+  "itemType"
+})
 public class ItemResponseDto {
   
   @JsonProperty("Id")
@@ -38,5 +52,9 @@ public class ItemResponseDto {
   
   @JsonProperty("CurrentMinPrice")
   private Integer currentMinPrice; // 현재 최저 가격
+  
+  @Builder.Default
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  private String itemType = "기타"; // 아이템 유형
   
 }

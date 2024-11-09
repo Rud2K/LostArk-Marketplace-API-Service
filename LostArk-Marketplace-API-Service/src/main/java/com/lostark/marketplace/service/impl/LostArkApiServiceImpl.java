@@ -1,8 +1,11 @@
 package com.lostark.marketplace.service.impl;
 
+import java.time.DayOfWeek;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,11 +22,14 @@ import com.lostark.marketplace.exception.LostArkMarketplaceException;
 import com.lostark.marketplace.exception.model.HttpStatusCode;
 import com.lostark.marketplace.model.CharacterInfoDto;
 import com.lostark.marketplace.model.ItemRequestDto;
+import com.lostark.marketplace.model.ItemResponseDto;
 import com.lostark.marketplace.model.MarketResponseDto;
+import com.lostark.marketplace.model.constant.ItemType;
 import com.lostark.marketplace.model.constant.LostArkClass;
 import com.lostark.marketplace.persist.MarketRepository;
 import com.lostark.marketplace.persist.entity.MarketEntity;
 import com.lostark.marketplace.service.LostArkApiService;
+import com.lostark.marketplace.service.SearchService;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -39,6 +45,7 @@ public class LostArkApiServiceImpl implements LostArkApiService {
   
   private final RestTemplate restTemplate;
   private final MarketRepository marketRepository;
+  private final SearchService searchService;
   
   @Override
   public List<CharacterInfoDto> getCharacterData(String characterName) {
@@ -90,9 +97,25 @@ public class LostArkApiServiceImpl implements LostArkApiService {
   @Override
   @Scheduled(fixedRate = 300000) // 5분마다 실행 (300000밀리초)
   public void updateMarketData() {
+    // API 서버 업데이트로 인한 매주 수요일 오전 06시부터 10시 사이에는 메서드를 실행하지 않음
+    LocalDateTime now = LocalDateTime.now();
+    if (now.getDayOfWeek() == DayOfWeek.WEDNESDAY &&
+        now.getHour() >= 6 && now.getHour() < 10) {
+      return;
+    }
+    
     // 마켓 정보를 가져와서 저장
     List<MarketResponseDto> marketDataList = this.getMarketData();
     this.saveMarketDataToDatabase(marketDataList);
+    
+    // Trie 초기화
+    List<String> itemNames = marketDataList.stream()
+        .flatMap(responseDto -> responseDto.getItems().stream())
+        .map(ItemResponseDto::getName)
+        .collect(Collectors.toList());
+    
+    this.searchService.initTrie(itemNames);
+    System.out.println("자동 완성 Trie 초기화 완료 - 총 " + itemNames.size() + "개의 아이템 추가됨.");
   }
   
   @Override
@@ -112,6 +135,16 @@ public class LostArkApiServiceImpl implements LostArkApiService {
         tierFiveMaterialRequest,
         legendaryEnravingRecipeRequest,
         relicEnravingRecipeRequest)) {
+      
+      // 상품 코드에 따라 itemType을 설정
+      final String itemType;
+      if (request.getCategoryCode() == 50000) {
+        itemType = ItemType.MATERIAL.getDisplayName();
+      } else if (request.getCategoryCode() == 40000) {
+        itemType = ItemType.ENRAVING_RECIPE.getDisplayName();
+      } else {
+        itemType = ItemType.ETC.getDisplayName();
+      }
       
       // 페이지 수를 확인을 위한 초기 변수 설정
       int pageNo = 1;
@@ -137,6 +170,10 @@ public class LostArkApiServiceImpl implements LostArkApiService {
           
           // JSON 응답 데이터를 파싱하여 MarketResponseDto로 변환
           MarketResponseDto marketData = this.parseMarketData(response.getBody());
+          
+          // 파싱된 MarketResponseDto의 각 아이템에 itemType을 설정
+          marketData.getItems().forEach(item -> item.setItemType(itemType));
+          
           marketResponses.add(marketData);
           
           // 전체 페이지 수 설정
@@ -168,7 +205,7 @@ public class LostArkApiServiceImpl implements LostArkApiService {
   }
   
   /**
-   * 마켓 데이터를 DB에 저장하는 메서드
+   * 불러온 마켓 데이터를 DB에 저장하는 메서드
    * 
    * @param marketDataList 가져온 마켓 데이터 목록
    */
@@ -178,11 +215,10 @@ public class LostArkApiServiceImpl implements LostArkApiService {
     
     marketDataList.forEach(data -> {
       data.getItems().forEach(item -> {
-        Optional<MarketEntity> existingEntity =
-            this.marketRepository.findByItemNameAndItemGrade(item.getName(), item.getGrade());
+        Optional<MarketEntity> existingEntity = this.marketRepository
+            .findByItemNameAndItemGrade(item.getName(), item.getGrade());
         
         if (existingEntity.isPresent()) {
-          // 기존 데이터가 존재하는 경우, 변경된 항목이 있을 때만 업데이트 리스트에 추가
           MarketEntity entityToUpdate = existingEntity.get();
           
           if (!entityToUpdate.getYDayAvgPrice().equals(item.getYDayAvgPrice())
@@ -196,8 +232,7 @@ public class LostArkApiServiceImpl implements LostArkApiService {
             entitiesToUpdate.add(entityToUpdate);
           }
         } else {
-          // 새로운 데이터인 경우, 삽입 리스트에 추가
-          entitiesToSave.add(MarketEntity.builder()
+          MarketEntity newEntity = MarketEntity.builder()
               .itemName(item.getName())
               .itemGrade(item.getGrade())
               .icon(item.getIcon())
@@ -206,19 +241,23 @@ public class LostArkApiServiceImpl implements LostArkApiService {
               .yDayAvgPrice(item.getYDayAvgPrice())
               .recentPrice(item.getRecentPrice())
               .currentMinPrice(item.getCurrentMinPrice())
-              .build());
+              .itemType(item.getItemType())
+              .build();
+          entitiesToSave.add(newEntity);
         }
       });
     });
     
+    List<MarketEntity> savedEntities = new ArrayList<>();
+    
     // Batch Insert
     if (!entitiesToSave.isEmpty()) {
-      marketRepository.saveAll(entitiesToSave);
+      savedEntities.addAll(this.marketRepository.saveAll(entitiesToSave));
     }
     
     // Batch Update
     if (!entitiesToUpdate.isEmpty()) {
-      marketRepository.saveAll(entitiesToUpdate);
+      savedEntities.addAll(this.marketRepository.saveAll(entitiesToUpdate));
     }
   }
   

@@ -10,6 +10,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import com.lostark.marketplace.model.UserDto;
 import com.lostark.marketplace.model.constant.UserRole;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -57,7 +58,7 @@ public class UserEntity implements UserDetails {
   @OneToMany(mappedBy = "user")
   private List<CharacterInfoEntity> characterInfos; // 유저가 보유 중인 캐릭터 목록
   
-  @OneToOne(mappedBy = "user")
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private CartEntity cart; // 유저의 장바구니
   
   /**

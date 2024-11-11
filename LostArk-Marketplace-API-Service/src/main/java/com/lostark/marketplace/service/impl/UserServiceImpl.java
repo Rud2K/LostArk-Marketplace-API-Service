@@ -73,6 +73,7 @@ public class UserServiceImpl implements UserService {
         .user(user)
         .totalPrice(0)
         .status(OrderStatus.PENDING)
+        .orders(new ArrayList<>())
         .build();
     
     // 신규 유저 정보에 장바구니 설정

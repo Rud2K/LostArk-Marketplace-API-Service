@@ -16,7 +16,6 @@ import com.lostark.marketplace.exception.model.HttpStatusCode;
 import com.lostark.marketplace.model.CharacterInfoDto;
 import com.lostark.marketplace.model.UserDto;
 import com.lostark.marketplace.model.constant.LostArkClass;
-import com.lostark.marketplace.model.constant.OrderStatus;
 import com.lostark.marketplace.model.constant.UserRole;
 import com.lostark.marketplace.persist.CharacterInfoRepository;
 import com.lostark.marketplace.persist.UserRepository;
@@ -72,7 +71,6 @@ public class UserServiceImpl implements UserService {
     CartEntity cart = CartEntity.builder()
         .user(user)
         .totalPrice(0)
-        .status(OrderStatus.PENDING)
         .orders(new ArrayList<>())
         .build();
     

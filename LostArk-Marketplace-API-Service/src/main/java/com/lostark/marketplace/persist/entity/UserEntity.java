@@ -17,6 +17,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -54,7 +55,10 @@ public class UserEntity implements UserDetails {
   private LocalDateTime createAt; // 생성 일자
   
   @OneToMany(mappedBy = "user")
-  private List<CharacterInfoEntity> characterInfos;
+  private List<CharacterInfoEntity> characterInfos; // 유저가 보유 중인 캐릭터 목록
+  
+  @OneToOne(mappedBy = "user")
+  private CartEntity cart; // 유저의 장바구니
   
   /**
    * UserEntity를 UserDto로 변환하는 메소드
@@ -62,8 +66,14 @@ public class UserEntity implements UserDetails {
    * @return UserDto 객체
    */
   public UserDto toDto() {
-    return UserDto.builder().userId(this.userId).role(this.role.name()).username(this.username)
-        .email(this.email).gold(this.gold).point(this.point).couponCount(this.couponCount)
+    return UserDto.builder()
+        .userId(this.userId)
+        .role(this.role.name())
+        .username(this.username)
+        .email(this.email)
+        .gold(this.gold)
+        .point(this.point)
+        .couponCount(this.couponCount)
         .createAt(this.createAt)
         .characterInfos(this.characterInfos.stream()
             .map(CharacterInfoEntity::toDto)

@@ -16,9 +16,11 @@ import com.lostark.marketplace.exception.model.HttpStatusCode;
 import com.lostark.marketplace.model.CharacterInfoDto;
 import com.lostark.marketplace.model.UserDto;
 import com.lostark.marketplace.model.constant.LostArkClass;
+import com.lostark.marketplace.model.constant.OrderStatus;
 import com.lostark.marketplace.model.constant.UserRole;
 import com.lostark.marketplace.persist.CharacterInfoRepository;
 import com.lostark.marketplace.persist.UserRepository;
+import com.lostark.marketplace.persist.entity.CartEntity;
 import com.lostark.marketplace.persist.entity.CharacterInfoEntity;
 import com.lostark.marketplace.persist.entity.UserEntity;
 import com.lostark.marketplace.service.LostArkApiService;
@@ -65,6 +67,16 @@ public class UserServiceImpl implements UserService {
         .createAt(LocalDateTime.now())
         .characterInfos(new ArrayList<>())
         .build();
+    
+    // 장바구니 생성
+    CartEntity cart = CartEntity.builder()
+        .user(user)
+        .totalPrice(0)
+        .status(OrderStatus.PENDING)
+        .build();
+    
+    // 신규 유저 정보에 장바구니 설정
+    user.setCart(cart);
     
     // 신규 유저 정보 저장
     this.userRepository.save(user);

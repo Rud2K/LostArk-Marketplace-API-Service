@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -51,15 +52,16 @@ public class UserEntity implements UserDetails {
   
   private Integer point; // 유저가 보유 중인 포인트
   
-  private Integer couponCount; // 유저가 보유 중인 쿠폰의 개수
-  
   private LocalDateTime createAt; // 생성 일자
   
-  @OneToMany(mappedBy = "user")
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<CharacterInfoEntity> characterInfos; // 유저가 보유 중인 캐릭터 목록
   
   @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private CartEntity cart; // 유저의 장바구니
+  
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private Set<InventoryEntity> inventory; // 유저의 인벤토리 아이템 목록
   
   /**
    * UserEntity를 UserDto로 변환하는 메소드
@@ -74,7 +76,6 @@ public class UserEntity implements UserDetails {
         .email(this.email)
         .gold(this.gold)
         .point(this.point)
-        .couponCount(this.couponCount)
         .createAt(this.createAt)
         .characterInfos(this.characterInfos.stream()
             .map(CharacterInfoEntity::toDto)

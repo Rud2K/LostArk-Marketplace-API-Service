@@ -8,6 +8,7 @@ public enum HttpStatusCode {
   
   BAD_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."), // 400
   UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."), // 401
+  PAYMENT_REQUIRED(HttpStatus.PAYMENT_REQUIRED, "잔액이 부족합니다."), // 402
   FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."), // 403
   NOT_FOUND(HttpStatus.NOT_FOUND, "리소스를 찾을 수 없습니다."), // 404
   CONFLICT(HttpStatus.CONFLICT, "리소스 충돌이 발생했습니다."), // 409

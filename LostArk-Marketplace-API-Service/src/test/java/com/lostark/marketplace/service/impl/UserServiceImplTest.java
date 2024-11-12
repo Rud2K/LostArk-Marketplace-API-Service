@@ -97,8 +97,7 @@ class UserServiceImplTest {
     // 변경할 재화 정보 요청 테스트 객체 생성
     updateCurrencyRequest = new UserDto.UpdateCurrencyRequest(
         Optional.of(10000),
-        Optional.of(5000),
-        Optional.empty());
+        Optional.of(5000));
     
     // 변경할 이메일 정보 요청 테스트 객체 생성
     updateEmailRequest = UserDto.UpdateEmailRequest.builder()
@@ -223,7 +222,6 @@ class UserServiceImplTest {
     
     assertEquals(10000, result.getGold());
     assertEquals(5000, result.getPoint());
-    assertEquals(null, result.getCouponCount());
     verify(this.userRepository, times(1)).save(testUser);
   }
   

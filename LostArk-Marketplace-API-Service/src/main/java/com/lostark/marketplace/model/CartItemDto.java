@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class OrderManagerDto {
+public class CartItemDto {
   
-  private Long orderId; // 고유 식별자
+  private Long cartItemId; // 고유 식별자
   
   private Long itemId; // 주문된 상품의 식별자
   

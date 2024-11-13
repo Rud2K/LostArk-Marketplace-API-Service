@@ -1,7 +1,7 @@
 package com.lostark.marketplace.persist.entity;
 
 import java.time.LocalDateTime;
-import com.lostark.marketplace.model.OrderManagerDto;
+import com.lostark.marketplace.model.CartItemDto;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -20,11 +20,11 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 @Entity(name = "order_manager")
-public class OrderManagerEntity {
+public class CartItemEntity {
   
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long orderId; // 고유 식별자 (자동 생성)
+  private Long cartItemId; // 고유 식별자 (자동 생성)
 
   @ManyToOne
   @JoinColumn(name = "cart_id")
@@ -45,9 +45,9 @@ public class OrderManagerEntity {
    * 
    * @return OrderManagerDto 객체
    */
-  public OrderManagerDto toDto() {
-    return OrderManagerDto.builder()
-        .orderId(this.orderId)
+  public CartItemDto toDto() {
+    return CartItemDto.builder()
+        .cartItemId(this.cartItemId)
         .itemId(this.item.getItemId())
         .itemName(this.item.getItemName())
         .price(this.item.getCurrentMinPrice())

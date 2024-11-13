@@ -10,17 +10,18 @@ import com.lostark.marketplace.exception.model.HttpStatusCode;
 import com.lostark.marketplace.model.CartDto;
 import com.lostark.marketplace.model.CartItemRequestDto;
 import com.lostark.marketplace.model.CheckoutResponseDto;
-import com.lostark.marketplace.model.OrderManagerDto;
+import com.lostark.marketplace.model.CartItemDto;
 import com.lostark.marketplace.persist.CartRepository;
+import com.lostark.marketplace.persist.InventoryRepository;
 import com.lostark.marketplace.persist.MarketRepository;
 import com.lostark.marketplace.persist.PurchaseHistoryRepository;
 import com.lostark.marketplace.persist.entity.CartEntity;
+import com.lostark.marketplace.persist.entity.InventoryEntity;
 import com.lostark.marketplace.persist.entity.MarketEntity;
-import com.lostark.marketplace.persist.entity.OrderManagerEntity;
+import com.lostark.marketplace.persist.entity.CartItemEntity;
 import com.lostark.marketplace.persist.entity.PurchaseHistoryEntity;
 import com.lostark.marketplace.persist.entity.UserEntity;
 import com.lostark.marketplace.service.CartService;
-import com.lostark.marketplace.service.InventoryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
@@ -32,7 +33,7 @@ public class CartServiceImpl implements CartService {
   private final CartRepository cartRepository;
   private final MarketRepository marketRepository;
   private final PurchaseHistoryRepository purchaseHistoryRepository;
-  private final InventoryService inventoryService;
+  private final InventoryRepository inventoryRepository;
   
   @Override
   public CartDto addItemToCart(CartItemRequestDto request, String username) {
@@ -41,7 +42,7 @@ public class CartServiceImpl implements CartService {
         .orElseThrow(() -> new LostArkMarketplaceException(HttpStatusCode.NOT_FOUND));
     
     // 장바구니에 동일한 상품이 있는지 확인
-    OrderManagerEntity existingOrder = cart.getOrders().stream()
+    CartItemEntity existingOrder = cart.getOrders().stream()
         .filter(order -> order.getItem().getItemId().equals(request.getItemId()))
         .findFirst()
         .orElse(null);
@@ -56,7 +57,7 @@ public class CartServiceImpl implements CartService {
       MarketEntity item = this.marketRepository.findById(request.getItemId())
           .orElseThrow(() -> new LostArkMarketplaceException(HttpStatusCode.NOT_FOUND));
       
-      OrderManagerEntity newOrder = OrderManagerEntity.builder()
+      CartItemEntity newOrder = CartItemEntity.builder()
           .cart(cart)
           .item(item)
           .quantity(request.getQuantity())
@@ -85,7 +86,7 @@ public class CartServiceImpl implements CartService {
         .orElseThrow(() -> new LostArkMarketplaceException(HttpStatusCode.NOT_FOUND));
     
     // 장바구니 내 항목 조회
-    OrderManagerEntity orderToUpdate = cart.getOrders().stream()
+    CartItemEntity orderToUpdate = cart.getOrders().stream()
         .filter(order -> order.getItem().getItemId().equals(request.getItemId()))
         .findFirst()
         .orElseThrow(() -> new LostArkMarketplaceException(HttpStatusCode.NOT_FOUND));
@@ -119,7 +120,7 @@ public class CartServiceImpl implements CartService {
         .orElseThrow(() -> new LostArkMarketplaceException(HttpStatusCode.NOT_FOUND));
     
     // 장바구니 내 항목 조회
-    OrderManagerEntity orderToRemove = cart.getOrders().stream()
+    CartItemEntity orderToRemove = cart.getOrders().stream()
         .filter(order -> order.getItem().getItemId().equals(itemId))
         .findFirst()
         .orElseThrow(() -> new LostArkMarketplaceException(HttpStatusCode.NOT_FOUND));
@@ -165,13 +166,29 @@ public class CartServiceImpl implements CartService {
     
     // 인벤토리에 구매한 아이템 추가 또는 수량 업데이트
     cart.getOrders().forEach(order -> {
-      this.inventoryService.addOrUpdateInventory(user, order.getItem(), order.getQuantity());
+      // USER_ID와 ITEM_ID로 중복 확인
+      InventoryEntity existingInventory = this.inventoryRepository.findByUserAndItemWithLock(user, order.getItem());
+      
+      if (existingInventory != null) {
+        // 기존 인벤토리에 해당 아이템이 있을 경우 수량만 업데이트
+        existingInventory.setQuantity(existingInventory.getQuantity() + order.getQuantity());
+        this.inventoryRepository.save(existingInventory);
+      } else {
+        // 기존 인벤토리에 해당 아이템이 없을 경우 새로운 항목 생성 및 추가
+        InventoryEntity newInventoryItem = InventoryEntity.builder()
+            .user(user)
+            .item(order.getItem())
+            .quantity(order.getQuantity())
+            .createdAt(LocalDateTime.now())
+            .build();
+        this.inventoryRepository.save(newInventoryItem);
+      }
     });
     
     // 구매된 항목을 OrderManagerDto로 변환
-    List<OrderManagerDto> purchasedItemsDto = cart.getOrders().stream()
-        .map(order -> OrderManagerDto.builder()
-            .orderId(order.getOrderId())
+    List<CartItemDto> purchasedItemsDto = cart.getOrders().stream()
+        .map(order -> CartItemDto.builder()
+            .cartItemId(order.getCartItemId())
             .itemId(order.getItem().getItemId())
             .itemName(order.getItem().getItemName())
             .price(order.getItem().getCurrentMinPrice())
@@ -209,7 +226,7 @@ public class CartServiceImpl implements CartService {
     for (CartEntity cart : carts) {
       boolean priceUpdated = false;
       
-      for (OrderManagerEntity order : cart.getOrders()) {
+      for (CartItemEntity order : cart.getOrders()) {
         // MarketData에서 최신 가격 조회
         Integer currentPrice = this.marketRepository.findById(order.getItem().getItemId())
             .map(marketItem -> marketItem.getCurrentMinPrice())
@@ -237,7 +254,7 @@ public class CartServiceImpl implements CartService {
    */
   private void updateTotalPrice(CartEntity cart) {
     int totalPrice = 0;
-    for (OrderManagerEntity order : cart.getOrders()) {
+    for (CartItemEntity order : cart.getOrders()) {
       totalPrice += order.getItem().getCurrentMinPrice() * (order.getQuantity() * order.getItem().getBundleCount());
     }
     cart.setTotalPrice(totalPrice);

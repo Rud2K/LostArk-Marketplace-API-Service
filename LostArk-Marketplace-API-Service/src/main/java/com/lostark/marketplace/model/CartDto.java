@@ -18,6 +18,6 @@ public class CartDto {
   
   private Integer totalPrice; // 장바구니의 총 가격
   
-  private List<OrderManagerDto> orders; // 해당 장바구니에 포함된 주문 항목 목록
+  private List<CartItemDto> orders; // 해당 장바구니에 포함된 주문 항목 목록
   
 }

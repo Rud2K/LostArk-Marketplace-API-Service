@@ -36,7 +36,7 @@ public class CartEntity {
   private Integer totalPrice; // 장바구니의 총 가격
   
   @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<OrderManagerEntity> orders; // 해당 장바구니에 포함된 주문 항목 목록
+  private List<CartItemEntity> orders; // 해당 장바구니에 포함된 주문 항목 목록
   
   /**
    * CartEntity를 CartDto 변환하는 메소드
@@ -49,7 +49,7 @@ public class CartEntity {
         .userId(this.user.getUserId())
         .totalPrice(this.totalPrice)
         .orders(this.orders.stream()
-            .map(OrderManagerEntity::toDto)
+            .map(CartItemEntity::toDto)
             .collect(Collectors.toList()))
         .build();
   }

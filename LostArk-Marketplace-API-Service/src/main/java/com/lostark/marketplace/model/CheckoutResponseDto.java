@@ -23,6 +23,6 @@ public class CheckoutResponseDto {
   
   private LocalDateTime purchaseDate; // 결제 시각
   
-  private List<OrderManagerDto> purchasedItemNames; // 구매된 상품 이름 목록
+  private List<CartItemDto> purchasedItemNames; // 구매된 상품 이름 목록
   
 }

@@ -38,6 +38,6 @@ public class PurchaseHistoryEntity {
   
   @OneToMany(cascade = CascadeType.ALL)
   @JoinColumn(name = "purchase_history_id")
-  private List<OrderManagerEntity> purchasedItems; // 구매한 항목 목록
+  private List<CartItemEntity> purchasedItems; // 구매한 항목 목록
   
 }

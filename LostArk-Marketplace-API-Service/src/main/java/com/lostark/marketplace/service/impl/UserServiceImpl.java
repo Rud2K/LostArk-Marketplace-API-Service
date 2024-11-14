@@ -71,7 +71,6 @@ public class UserServiceImpl implements UserService {
     // 장바구니 생성
     CartEntity cart = CartEntity.builder()
         .user(user)
-        .totalPrice(0)
         .orders(new ArrayList<>())
         .build();
     

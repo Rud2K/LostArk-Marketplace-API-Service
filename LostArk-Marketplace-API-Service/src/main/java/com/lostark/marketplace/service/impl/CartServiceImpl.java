@@ -70,9 +70,6 @@ public class CartServiceImpl implements CartService {
       cart.getOrders().add(newOrder);
     }
     
-    // 총 가격 업데이트
-    this.updateTotalPrice(cart);
-    
     // 영속성 컨텍스트에 반영
     cart = this.cartRepository.save(cart);
     
@@ -98,9 +95,6 @@ public class CartServiceImpl implements CartService {
       // 수량이 0이라면 해당 항목 제거
       cart.getOrders().remove(orderToUpdate);
     }
-    
-    // 총 가격 업데이트
-    this.updateTotalPrice(cart);
     
     return cart.toDto();
   }
@@ -128,9 +122,6 @@ public class CartServiceImpl implements CartService {
     // 항목 제거
     cart.getOrders().remove(orderToRemove);
     
-    // 총 가격 업데이트
-    this.updateTotalPrice(cart);
-    
     return cart.toDto();
   }
   
@@ -144,20 +135,23 @@ public class CartServiceImpl implements CartService {
       throw new LostArkMarketplaceException(HttpStatusCode.BAD_REQUEST);
     }
     
+    // DTO로 변환하여 총 결제 금액 계산
+    int totalPrice = cart.toDto().getTotalPrice();
+    
     // 결제 가능 여부 확인
     UserEntity user = cart.getUser();
     
-    if (user.getGold() < cart.getTotalPrice()) {
+    if (user.getGold() < totalPrice) {
       throw new LostArkMarketplaceException(HttpStatusCode.PAYMENT_REQUIRED);
     }
     
     // 결제 처리
-    user.setGold(user.getGold() - cart.getTotalPrice());
+    user.setGold(user.getGold() - totalPrice);
     
     // 구매 내역 생성 및 저장
     PurchaseHistoryEntity purchaseHistory = PurchaseHistoryEntity.builder()
         .user(user)
-        .totalAmount(cart.getTotalPrice())
+        .totalAmount(totalPrice)
         .purchaseDate(LocalDateTime.now())
         .purchasedItems(new ArrayList<>(cart.getOrders()))
         .build();
@@ -166,22 +160,18 @@ public class CartServiceImpl implements CartService {
     
     // 인벤토리에 구매한 아이템 추가 또는 수량 업데이트
     cart.getOrders().forEach(order -> {
-      // USER_ID와 ITEM_ID로 중복 확인
       InventoryEntity existingInventory = this.inventoryRepository.findByUserAndItemWithLock(user, order.getItem());
-      
-      if (existingInventory != null) {
-        // 기존 인벤토리에 해당 아이템이 있을 경우 수량만 업데이트
+      if (existingInventory != null) { // 기존 인벤토리가 있을 경우 수량만 업데이트
         existingInventory.setQuantity(existingInventory.getQuantity() + order.getQuantity());
         this.inventoryRepository.save(existingInventory);
-      } else {
-        // 기존 인벤토리에 해당 아이템이 없을 경우 새로운 항목 생성 및 추가
-        InventoryEntity newInventoryItem = InventoryEntity.builder()
+      } else { // 기존 인벤토리가 없을 경우 새로 생성
+        InventoryEntity newInventory = InventoryEntity.builder()
             .user(user)
             .item(order.getItem())
             .quantity(order.getQuantity())
             .createdAt(LocalDateTime.now())
             .build();
-        this.inventoryRepository.save(newInventoryItem);
+        this.inventoryRepository.save(newInventory);
       }
     });
     
@@ -210,9 +200,6 @@ public class CartServiceImpl implements CartService {
     // 장바구니 초기화
     cart.getOrders().forEach(order -> order.setCart(null));
     cart.getOrders().clear();
-    cart.setTotalPrice(0);
-    
-    // 장바구니 초기화 정보를 저장해 영속성 컨텍스트에 반영
     this.cartRepository.save(cart);
     
     return response;
@@ -241,23 +228,9 @@ public class CartServiceImpl implements CartService {
       
       // 장바구니 총 가격 업데이트 및 업데이트된 장바구니 저장
       if (priceUpdated) {
-        this.updateTotalPrice(cart);
         this.cartRepository.save(cart);
       }
     }
-  }
-  
-  /**
-   * 장바구니의 총 가격을 업데이트하는 메서드
-   * 
-   * @param cart 업데이트할 장바구니 엔티티
-   */
-  private void updateTotalPrice(CartEntity cart) {
-    int totalPrice = 0;
-    for (CartItemEntity order : cart.getOrders()) {
-      totalPrice += order.getItem().getCurrentMinPrice() * (order.getQuantity() * order.getItem().getBundleCount());
-    }
-    cart.setTotalPrice(totalPrice);
   }
   
 }

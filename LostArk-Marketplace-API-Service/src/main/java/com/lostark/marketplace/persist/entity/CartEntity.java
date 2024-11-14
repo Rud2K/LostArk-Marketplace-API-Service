@@ -33,8 +33,6 @@ public class CartEntity {
   @JoinColumn(name = "user_id", nullable = false)
   private UserEntity user; // 해당 장바구니와 연관된 유저 정보
   
-  private Integer totalPrice; // 장바구니의 총 가격
-  
   @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<CartItemEntity> orders; // 해당 장바구니에 포함된 주문 항목 목록
   
@@ -44,10 +42,14 @@ public class CartEntity {
    * @return CartDto 객체
    */
   public CartDto toDto() {
+    int totalPrice = this.getOrders().stream()
+        .mapToInt(order -> order.getItem().getCurrentMinPrice() * (order.getQuantity() * order.getItem().getBundleCount()))
+        .sum();
+    
     return CartDto.builder()
         .cartId(this.cartId)
         .userId(this.user.getUserId())
-        .totalPrice(this.totalPrice)
+        .totalPrice(totalPrice)
         .orders(this.orders.stream()
             .map(CartItemEntity::toDto)
             .collect(Collectors.toList()))

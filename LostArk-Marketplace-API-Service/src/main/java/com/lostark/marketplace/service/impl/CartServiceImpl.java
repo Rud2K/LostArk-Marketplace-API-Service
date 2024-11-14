@@ -160,7 +160,7 @@ public class CartServiceImpl implements CartService {
     
     // 인벤토리에 구매한 아이템 추가 또는 수량 업데이트
     cart.getOrders().forEach(order -> {
-      InventoryEntity existingInventory = this.inventoryRepository.findByUserAndItemWithLock(user, order.getItem());
+      InventoryEntity existingInventory = this.inventoryRepository.findByUserAndItem(user, order.getItem());
       if (existingInventory != null) { // 기존 인벤토리가 있을 경우 수량만 업데이트
         existingInventory.setQuantity(existingInventory.getQuantity() + order.getQuantity());
         this.inventoryRepository.save(existingInventory);

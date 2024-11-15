@@ -17,11 +17,14 @@ import com.lostark.marketplace.exception.model.HttpStatusCode;
 import com.lostark.marketplace.model.CharacterInfoDto;
 import com.lostark.marketplace.model.UserDto;
 import com.lostark.marketplace.model.constant.LostArkClass;
+import com.lostark.marketplace.model.constant.PointReason;
 import com.lostark.marketplace.model.constant.UserRole;
 import com.lostark.marketplace.persist.CharacterInfoRepository;
+import com.lostark.marketplace.persist.PointHistoryRepository;
 import com.lostark.marketplace.persist.UserRepository;
 import com.lostark.marketplace.persist.entity.CartEntity;
 import com.lostark.marketplace.persist.entity.CharacterInfoEntity;
+import com.lostark.marketplace.persist.entity.PointHistoryEntity;
 import com.lostark.marketplace.persist.entity.UserEntity;
 import com.lostark.marketplace.service.LostArkApiService;
 import com.lostark.marketplace.service.UserService;
@@ -39,6 +42,7 @@ public class UserServiceImpl implements UserService {
   private final PasswordEncoder passwordEncoder;
   private final UserRepository userRepository;
   private final CharacterInfoRepository characterInfoRepository;
+  private final PointHistoryRepository pointHistoryRepository;
   private final LostArkApiService lostArkApiService;
   
   private final int passwordLength = 16;
@@ -92,6 +96,31 @@ public class UserServiceImpl implements UserService {
     // 비밀번호 검증
     if (!this.passwordEncoder.matches(request.getPassword(), user.getPassword())) {
       throw new LostArkMarketplaceException(HttpStatusCode.UNAUTHORIZED);
+    }
+    
+    // 금일 로그인 포인트 보상 여부 확인
+    LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+    LocalDateTime endOfDay = startOfDay.plusDays(1);
+    
+    boolean hasReceivedDailyBonus = this.pointHistoryRepository.existsByUserAndReasonAndCreatedAtBetween(
+        user,
+        PointReason.DAILY_LOGIN.getDescription(),
+        startOfDay,
+        endOfDay);
+    
+    if (!hasReceivedDailyBonus) {
+      // 포인트 적립 (10포인트)
+      int dailyBonusPoints = 10;
+      user.setPoint(user.getPoint() + 10);
+      
+      // 포인트 적립 기록 저장
+      PointHistoryEntity dailyLoginBonus = PointHistoryEntity.builder()
+          .user(user)
+          .points(dailyBonusPoints)
+          .reason(PointReason.DAILY_LOGIN.getDescription())
+          .createdAt(LocalDateTime.now())
+          .build();
+      this.pointHistoryRepository.save(dailyLoginBonus);
     }
     
     // 인증 시도 후 성공 시 JWT 반환

@@ -132,6 +132,7 @@ public class CartServiceImpl implements CartService {
     CartEntity cart = this.cartRepository.findByUserUsername(username)
         .orElseThrow(() -> new LostArkMarketplaceException(HttpStatusCode.NOT_FOUND));
     
+    // 장바구니가 비어 있는 경우
     if (cart.getOrders().isEmpty()) {
       throw new LostArkMarketplaceException(HttpStatusCode.BAD_REQUEST);
     }
@@ -149,25 +150,36 @@ public class CartServiceImpl implements CartService {
       throw new LostArkMarketplaceException(HttpStatusCode.BAD_REQUEST);
     }
     
-    // 결제 금액의 50% 이상은 재화로 결제해야 함
-    int remainingAmount = totalPrice - usedPoints;
-    if (remainingAmount < totalPrice / 2) {
-        throw new LostArkMarketplaceException(HttpStatusCode.BAD_REQUEST);
+    // 사용하려는 골드가 유효한지 확인
+    if (usedGold > user.getGold()) {
+      throw new LostArkMarketplaceException(HttpStatusCode.BAD_REQUEST);
     }
     
-    // 유저 재화와 포인트 업데이트
-    if (user.getGold() < remainingAmount) {
+    // 포인트와 골드의 합산이 결제 금액에 미치치 못할 경우
+    if (usedGold + usedPoints < totalPrice) {
       throw new LostArkMarketplaceException(HttpStatusCode.PAYMENT_REQUIRED);
     }
     
+    // 결제 금액의 절반 이상이 골드 결제인지 검증
+    if (usedGold < totalPrice / 2) {
+      throw new LostArkMarketplaceException(HttpStatusCode.BAD_REQUEST);
+    }
+    
+    // 골드와 포인트 합산이 총 결제 금액보다 큰 경우
+    if (usedGold + usedPoints > totalPrice) {
+      usedGold = totalPrice - usedPoints;
+    }
+    
     // 결제 처리
-    user.setGold(user.getGold() - remainingAmount);
+    user.setGold(user.getGold() - usedGold);
     user.setPoint(user.getPoint() - usedPoints);
     
     // 구매 내역 생성
     PurchaseHistoryEntity purchaseHistory = PurchaseHistoryEntity.builder()
         .user(user)
         .totalAmount(totalPrice)
+        .usedPoints(usedGold)
+        .earnedPoints(usedPoints)
         .purchaseDate(LocalDateTime.now())
         .purchasedItems(new ArrayList<>(cart.getOrders()))
         .build();
@@ -181,7 +193,7 @@ public class CartServiceImpl implements CartService {
     });
     
     // 포인트 적립
-    this.pointService.awardPoints(user, remainingAmount);
+    this.pointService.awardPoints(user, totalPrice - usedPoints);
     
     // 구매된 항목을 OrderManagerDto로 변환
     List<CartItemDto> purchasedItemsDto = cart.getOrders().stream()
@@ -198,6 +210,8 @@ public class CartServiceImpl implements CartService {
     // 응답 객체 생성
     CheckoutResponseDto response = CheckoutResponseDto.builder()
         .userId(user.getUserId())
+        .usedGold(usedGold)
+        .usedPoint(usedPoints)
         .remainingGold(user.getGold())
         .remainingPoint(user.getPoint())
         .totalAmount(purchaseHistory.getTotalAmount())

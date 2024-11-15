@@ -34,6 +34,10 @@ public class PurchaseHistoryEntity {
   
   private Integer totalAmount; // 결제된 총 금액
   
+  private Integer usedPoints; // 결제 시 사용한 포인트
+  
+  private Integer earnedPoints; // 결제 시 적립된 포인트
+  
   private LocalDateTime purchaseDate; // 결제 시각
   
   @OneToMany(cascade = CascadeType.ALL)

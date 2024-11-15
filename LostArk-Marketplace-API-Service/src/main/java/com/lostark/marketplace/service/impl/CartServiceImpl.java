@@ -127,7 +127,7 @@ public class CartServiceImpl implements CartService {
   }
   
   @Override
-  public CheckoutResponseDto checkoutCart(String username) {
+  public CheckoutResponseDto checkoutCart(String username, int usedGold, int usedPoints) {
     // 유저의 장바구니 조회
     CartEntity cart = this.cartRepository.findByUserUsername(username)
         .orElseThrow(() -> new LostArkMarketplaceException(HttpStatusCode.NOT_FOUND));
@@ -141,17 +141,30 @@ public class CartServiceImpl implements CartService {
         .mapToInt(order -> order.getItem().getCurrentMinPrice() * order.getQuantity())
         .sum();
     
-    // 결제 가능 여부 확인
+    // 유저 정보 조회
     UserEntity user = cart.getUser();
     
-    if (user.getGold() < totalPrice) {
+    // 사용하려는 포인트가 유효한지 확인
+    if (usedPoints > user.getPoint()) {
+      throw new LostArkMarketplaceException(HttpStatusCode.BAD_REQUEST);
+    }
+    
+    // 결제 금액의 50% 이상은 재화로 결제해야 함
+    int remainingAmount = totalPrice - usedPoints;
+    if (remainingAmount < totalPrice / 2) {
+        throw new LostArkMarketplaceException(HttpStatusCode.BAD_REQUEST);
+    }
+    
+    // 유저 재화와 포인트 업데이트
+    if (user.getGold() < remainingAmount) {
       throw new LostArkMarketplaceException(HttpStatusCode.PAYMENT_REQUIRED);
     }
     
     // 결제 처리
-    user.setGold(user.getGold() - totalPrice);
+    user.setGold(user.getGold() - remainingAmount);
+    user.setPoint(user.getPoint() - usedPoints);
     
-    // 구매 내역 생성 및 저장
+    // 구매 내역 생성
     PurchaseHistoryEntity purchaseHistory = PurchaseHistoryEntity.builder()
         .user(user)
         .totalAmount(totalPrice)
@@ -159,6 +172,7 @@ public class CartServiceImpl implements CartService {
         .purchasedItems(new ArrayList<>(cart.getOrders()))
         .build();
     
+    // 구매 내역 저장
     this.purchaseHistoryRepository.save(purchaseHistory);
     
     // 인벤토리에 구매한 아이템 추가 또는 수량 업데이트
@@ -167,8 +181,8 @@ public class CartServiceImpl implements CartService {
     });
     
     // 포인트 적립 (최소 결제 금액 1000원)
-    if (totalPrice >= 1000) {
-      this.pointService.addPoints(user, totalPrice);
+    if (remainingAmount >= 1000) { // 사용한 포인트 제외 후 지불 금액만 적립
+      this.pointService.addPoints(user, remainingAmount);
     }
     
     // 구매된 항목을 OrderManagerDto로 변환

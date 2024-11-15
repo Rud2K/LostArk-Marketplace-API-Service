@@ -45,9 +45,11 @@ public interface CartService {
    * 장바구니에 담긴 상품을 결제 처리하고 장바구니를 초기화하는 메서드
    * 
    * @param username 결제를 진행할 유저 이름
+   * @param usedGold 결제 시 사용할 인게임 재화(골드)
+   * @param usedPoints 결제 시 사용할 포인트
    * @return 결제 결과와 관련 정보를 담은 CheckoutResponseDto 객체
    */
-  CheckoutResponseDto checkoutCart(String username);
+  CheckoutResponseDto checkoutCart(String username, int usedGold, int usedPoints);
   
   /**
    * 모든 사용자의 장바구니 내 상품 가격을 주기적으로 최신 상태로 동기화하는 메서드

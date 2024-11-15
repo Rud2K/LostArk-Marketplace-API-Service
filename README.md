@@ -141,7 +141,7 @@
 - **IDE**: Eclipse
 
 ## 💾 ERD
-<img src="https://github.com/user-attachments/assets/2aef7a8d-42e4-40e9-9175-39f044e1b04b" width="800" height="650"/>  
+<img src="https://github.com/user-attachments/assets/a0c0205b-b23d-4cd6-9623-b3911f129eb3" width="800" height="650"/>  
 
 ## 🔗 API 연동 정보  
 - **LostArk Open API**를 활용해 **캐릭터 정보**와 **거래소 정보**를 불러옵니다.  

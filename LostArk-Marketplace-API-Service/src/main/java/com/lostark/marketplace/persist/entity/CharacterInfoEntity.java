@@ -43,7 +43,7 @@ public class CharacterInfoEntity {
   
   @ManyToOne
   @JoinColumn(name = "user_id")
-  private UserEntity user;
+  private UserEntity user; // 해당 캐릭터와 연관된 유저 정보
   
   /**
    * CharacterInfoEntity를 CharacterInfoDto로 변환하는 메소드

@@ -28,6 +28,7 @@ import com.lostark.marketplace.model.constant.ItemType;
 import com.lostark.marketplace.model.constant.LostArkClass;
 import com.lostark.marketplace.persist.MarketRepository;
 import com.lostark.marketplace.persist.entity.MarketEntity;
+import com.lostark.marketplace.service.CartService;
 import com.lostark.marketplace.service.LostArkApiService;
 import com.lostark.marketplace.service.SearchService;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class LostArkApiServiceImpl implements LostArkApiService {
   private final RestTemplate restTemplate;
   private final MarketRepository marketRepository;
   private final SearchService searchService;
+  private final CartService cartService;
   
   @Override
   public List<CharacterInfoDto> getCharacterData(String characterName) {
@@ -116,6 +118,9 @@ public class LostArkApiServiceImpl implements LostArkApiService {
     
     this.searchService.initTrie(itemNames);
     System.out.println("자동 완성 Trie 초기화 완료 - 총 " + itemNames.size() + "개의 아이템 추가됨.");
+    
+    // 장바구니 가격 동기화
+    this.cartService.synchronizeCartPrices();
   }
   
   @Override

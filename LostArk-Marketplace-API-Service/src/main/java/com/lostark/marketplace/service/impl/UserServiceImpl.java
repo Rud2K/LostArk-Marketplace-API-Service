@@ -2,6 +2,7 @@ package com.lostark.marketplace.service.impl;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,6 +20,7 @@ import com.lostark.marketplace.model.constant.LostArkClass;
 import com.lostark.marketplace.model.constant.UserRole;
 import com.lostark.marketplace.persist.CharacterInfoRepository;
 import com.lostark.marketplace.persist.UserRepository;
+import com.lostark.marketplace.persist.entity.CartEntity;
 import com.lostark.marketplace.persist.entity.CharacterInfoEntity;
 import com.lostark.marketplace.persist.entity.UserEntity;
 import com.lostark.marketplace.service.LostArkApiService;
@@ -61,10 +63,19 @@ public class UserServiceImpl implements UserService {
         .email(request.getEmail())
         .gold(0)
         .point(0)
-        .couponCount(0)
         .createAt(LocalDateTime.now())
         .characterInfos(new ArrayList<>())
+        .inventory(new HashSet<>())
         .build();
+    
+    // 장바구니 생성
+    CartEntity cart = CartEntity.builder()
+        .user(user)
+        .orders(new ArrayList<>())
+        .build();
+    
+    // 신규 유저 정보에 장바구니 설정
+    user.setCart(cart);
     
     // 신규 유저 정보 저장
     this.userRepository.save(user);
@@ -111,7 +122,6 @@ public class UserServiceImpl implements UserService {
     // ifPresent() 메소드로 값이 있을 때만 엔티티에 반영
     request.getGold().ifPresent(user::setGold);
     request.getPoint().ifPresent(user::setPoint);
-    request.getCouponCount().ifPresent(user::setCouponCount);
     
     return user.toDto();
   }

@@ -58,8 +58,6 @@ public class UserDto {
     @Builder.Default
     private Optional<Integer> point = Optional.empty();
     
-    @Builder.Default
-    private Optional<Integer> couponCount = Optional.empty();
   }
   
   @Data
@@ -101,8 +99,6 @@ public class UserDto {
   private Integer gold; // 유저가 보유 중인 인게임 재화 (골드)
   
   private Integer point; // 유저가 보유 중인 포인트
-  
-  private Integer couponCount; // 유저가 보유 중인 쿠폰의 개수
   
   private LocalDateTime createAt; // 계정 생성일
   

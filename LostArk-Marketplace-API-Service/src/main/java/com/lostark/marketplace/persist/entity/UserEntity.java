@@ -4,12 +4,14 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import com.lostark.marketplace.model.UserDto;
 import com.lostark.marketplace.model.constant.UserRole;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -17,6 +19,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -49,12 +52,16 @@ public class UserEntity implements UserDetails {
   
   private Integer point; // 유저가 보유 중인 포인트
   
-  private Integer couponCount; // 유저가 보유 중인 쿠폰의 개수
-  
   private LocalDateTime createAt; // 생성 일자
   
-  @OneToMany(mappedBy = "user")
-  private List<CharacterInfoEntity> characterInfos;
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<CharacterInfoEntity> characterInfos; // 유저가 보유 중인 캐릭터 목록
+  
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private CartEntity cart; // 유저의 장바구니
+  
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private Set<InventoryEntity> inventory; // 유저의 인벤토리 아이템 목록
   
   /**
    * UserEntity를 UserDto로 변환하는 메소드
@@ -62,8 +69,13 @@ public class UserEntity implements UserDetails {
    * @return UserDto 객체
    */
   public UserDto toDto() {
-    return UserDto.builder().userId(this.userId).role(this.role.name()).username(this.username)
-        .email(this.email).gold(this.gold).point(this.point).couponCount(this.couponCount)
+    return UserDto.builder()
+        .userId(this.userId)
+        .role(this.role.name())
+        .username(this.username)
+        .email(this.email)
+        .gold(this.gold)
+        .point(this.point)
         .createAt(this.createAt)
         .characterInfos(this.characterInfos.stream()
             .map(CharacterInfoEntity::toDto)

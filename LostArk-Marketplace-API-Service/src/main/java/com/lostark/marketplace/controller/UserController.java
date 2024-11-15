@@ -1,5 +1,6 @@
 package com.lostark.marketplace.controller;
 
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.lostark.marketplace.model.InventoryDto;
 import com.lostark.marketplace.model.UserDto;
+import com.lostark.marketplace.service.InventoryService;
 import com.lostark.marketplace.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class UserController {
   
   private final UserService userService;
+  private final InventoryService inventoryService;
   
   @PostMapping("/signup")
   public ResponseEntity<UserDto> signUp(@Valid @RequestBody UserDto.SignUp request) {
@@ -77,6 +81,13 @@ public class UserController {
   public ResponseEntity<UserDto> syncLostArkCharacters(@RequestParam("characterName") String characterName) {
     String username = SecurityContextHolder.getContext().getAuthentication().getName();
     return ResponseEntity.ok(this.userService.syncLostArkCharacters(username, characterName));
+  }
+  
+  @GetMapping("/inventory")
+  @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+  public ResponseEntity<Set<InventoryDto>> getInventory() {
+    String username = SecurityContextHolder.getContext().getAuthentication().getName();
+    return ResponseEntity.ok(this.inventoryService.getUserInventory(username));
   }
   
 }

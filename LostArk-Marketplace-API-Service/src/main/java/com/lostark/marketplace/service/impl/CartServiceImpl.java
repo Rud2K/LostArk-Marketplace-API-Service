@@ -8,20 +8,19 @@ import org.springframework.stereotype.Service;
 import com.lostark.marketplace.exception.LostArkMarketplaceException;
 import com.lostark.marketplace.exception.model.HttpStatusCode;
 import com.lostark.marketplace.model.CartDto;
+import com.lostark.marketplace.model.CartItemDto;
 import com.lostark.marketplace.model.CartItemRequestDto;
 import com.lostark.marketplace.model.CheckoutResponseDto;
-import com.lostark.marketplace.model.CartItemDto;
 import com.lostark.marketplace.persist.CartRepository;
-import com.lostark.marketplace.persist.InventoryRepository;
 import com.lostark.marketplace.persist.MarketRepository;
 import com.lostark.marketplace.persist.PurchaseHistoryRepository;
 import com.lostark.marketplace.persist.entity.CartEntity;
-import com.lostark.marketplace.persist.entity.InventoryEntity;
-import com.lostark.marketplace.persist.entity.MarketEntity;
 import com.lostark.marketplace.persist.entity.CartItemEntity;
+import com.lostark.marketplace.persist.entity.MarketEntity;
 import com.lostark.marketplace.persist.entity.PurchaseHistoryEntity;
 import com.lostark.marketplace.persist.entity.UserEntity;
 import com.lostark.marketplace.service.CartService;
+import com.lostark.marketplace.service.InventoryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
@@ -33,7 +32,7 @@ public class CartServiceImpl implements CartService {
   private final CartRepository cartRepository;
   private final MarketRepository marketRepository;
   private final PurchaseHistoryRepository purchaseHistoryRepository;
-  private final InventoryRepository inventoryRepository;
+  private final InventoryService inventoryService;
   
   @Override
   public CartDto addItemToCart(CartItemRequestDto request, String username) {
@@ -135,8 +134,10 @@ public class CartServiceImpl implements CartService {
       throw new LostArkMarketplaceException(HttpStatusCode.BAD_REQUEST);
     }
     
-    // DTO로 변환하여 총 결제 금액 계산
-    int totalPrice = cart.toDto().getTotalPrice();
+    // 총 결제 금액 계산
+    int totalPrice = cart.getOrders().stream()
+        .mapToInt(order -> order.getItem().getCurrentMinPrice() * order.getQuantity())
+        .sum();
     
     // 결제 가능 여부 확인
     UserEntity user = cart.getUser();
@@ -160,19 +161,7 @@ public class CartServiceImpl implements CartService {
     
     // 인벤토리에 구매한 아이템 추가 또는 수량 업데이트
     cart.getOrders().forEach(order -> {
-      InventoryEntity existingInventory = this.inventoryRepository.findByUserAndItem(user, order.getItem());
-      if (existingInventory != null) { // 기존 인벤토리가 있을 경우 수량만 업데이트
-        existingInventory.setQuantity(existingInventory.getQuantity() + order.getQuantity());
-        this.inventoryRepository.save(existingInventory);
-      } else { // 기존 인벤토리가 없을 경우 새로 생성
-        InventoryEntity newInventory = InventoryEntity.builder()
-            .user(user)
-            .item(order.getItem())
-            .quantity(order.getQuantity())
-            .createdAt(LocalDateTime.now())
-            .build();
-        this.inventoryRepository.save(newInventory);
-      }
+      this.inventoryService.addOrUpdateInventory(user, order.getItem(), order.getQuantity());
     });
     
     // 구매된 항목을 OrderManagerDto로 변환

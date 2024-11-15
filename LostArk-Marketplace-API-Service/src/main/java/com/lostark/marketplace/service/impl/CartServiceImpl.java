@@ -21,6 +21,7 @@ import com.lostark.marketplace.persist.entity.PurchaseHistoryEntity;
 import com.lostark.marketplace.persist.entity.UserEntity;
 import com.lostark.marketplace.service.CartService;
 import com.lostark.marketplace.service.InventoryService;
+import com.lostark.marketplace.service.PointService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
@@ -33,6 +34,7 @@ public class CartServiceImpl implements CartService {
   private final MarketRepository marketRepository;
   private final PurchaseHistoryRepository purchaseHistoryRepository;
   private final InventoryService inventoryService;
+  private final PointService pointService;
   
   @Override
   public CartDto addItemToCart(CartItemRequestDto request, String username) {
@@ -163,6 +165,11 @@ public class CartServiceImpl implements CartService {
     cart.getOrders().forEach(order -> {
       this.inventoryService.addOrUpdateInventory(user, order.getItem(), order.getQuantity());
     });
+    
+    // 포인트 적립 (최소 결제 금액 1000원)
+    if (totalPrice >= 1000) {
+      this.pointService.addPoints(user, totalPrice);
+    }
     
     // 구매된 항목을 OrderManagerDto로 변환
     List<CartItemDto> purchasedItemsDto = cart.getOrders().stream()

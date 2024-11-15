@@ -1,5 +1,7 @@
 package com.lostark.marketplace.service.impl;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -26,7 +28,10 @@ public class PointServiceImpl implements PointService {
   @Override
   public void addPoints(UserEntity user, int totalPrice) {
     // 구매 금액의 일정 비율(3%)을 포인트로 환산
-    int pointAmount = totalPrice * 3 / 100;
+    int pointAmount = BigDecimal.valueOf(totalPrice)
+        .multiply(BigDecimal.valueOf(0.03))
+        .setScale(0, RoundingMode.FLOOR) // 소수점 내림 처리
+        .intValue();
     
     if (pointAmount <= 0) {
       throw new LostArkMarketplaceException(HttpStatusCode.BAD_REQUEST);

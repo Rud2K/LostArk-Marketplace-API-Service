@@ -180,10 +180,8 @@ public class CartServiceImpl implements CartService {
       this.inventoryService.addOrUpdateInventory(user, order.getItem(), order.getQuantity());
     });
     
-    // 포인트 적립 (최소 결제 금액 1000원)
-    if (remainingAmount >= 1000) { // 사용한 포인트 제외 후 지불 금액만 적립
-      this.pointService.addPoints(user, remainingAmount);
-    }
+    // 포인트 적립
+    this.pointService.awardPoints(user, remainingAmount);
     
     // 구매된 항목을 OrderManagerDto로 변환
     List<CartItemDto> purchasedItemsDto = cart.getOrders().stream()

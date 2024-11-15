@@ -12,4 +12,9 @@ public interface PointService {
    */
   void addPoints(UserEntity user, int totalPrice);
   
+  /**
+   * 매일 자정 00시에 실행되어 6개월이 지난 포인트 삭제
+   */
+  void deleteExpiredPoints();
+  
 }

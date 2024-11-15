@@ -1,11 +1,14 @@
 package com.lostark.marketplace.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import com.lostark.marketplace.exception.LostArkMarketplaceException;
 import com.lostark.marketplace.exception.model.HttpStatusCode;
 import com.lostark.marketplace.model.constant.PointReason;
 import com.lostark.marketplace.persist.PointHistoryRepository;
+import com.lostark.marketplace.persist.UserRepository;
 import com.lostark.marketplace.persist.entity.PointHistoryEntity;
 import com.lostark.marketplace.persist.entity.UserEntity;
 import com.lostark.marketplace.service.PointService;
@@ -18,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 public class PointServiceImpl implements PointService {
   
   private final PointHistoryRepository pointHistoryRepository;
+  private final UserRepository userRepository;
   
   @Override
   public void addPoints(UserEntity user, int totalPrice) {
@@ -41,6 +45,25 @@ public class PointServiceImpl implements PointService {
     
     // 포인트 적립 기록 저장
     this.pointHistoryRepository.save(pointHistory);
+  }
+  
+  @Override
+  @Scheduled(cron = "0 0 0 * * ?") // 매일 00:00에 실행
+  public void deleteExpiredPoints() {
+    LocalDateTime sixMonthsAgo = LocalDateTime.now().minusMonths(6);
+    
+    // 만료된 포인트 이력 조회
+    List<PointHistoryEntity> expiredPoints = pointHistoryRepository.findAllByCreatedAtBefore(sixMonthsAgo);
+    
+    // 유저 포인트 차감
+    expiredPoints.forEach(expiredPoint -> {
+      UserEntity user = expiredPoint.getUser();
+      user.setPoint(Math.max(0, user.getPoint() - expiredPoint.getPoints()));
+      this.userRepository.save(user);
+    });
+    
+    // 만료된 포인트 이력 삭제
+    this.pointHistoryRepository.deleteByCreatedAtBefore(sixMonthsAgo);
   }
   
 }

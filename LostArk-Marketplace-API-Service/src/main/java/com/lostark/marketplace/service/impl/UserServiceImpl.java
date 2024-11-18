@@ -24,6 +24,7 @@ import com.lostark.marketplace.persist.entity.CartEntity;
 import com.lostark.marketplace.persist.entity.CharacterInfoEntity;
 import com.lostark.marketplace.persist.entity.UserEntity;
 import com.lostark.marketplace.service.LostArkApiService;
+import com.lostark.marketplace.service.PointService;
 import com.lostark.marketplace.service.UserService;
 import com.lostark.marketplace.util.JwtUtil;
 import com.lostark.marketplace.util.PasswordGenerator;
@@ -40,6 +41,7 @@ public class UserServiceImpl implements UserService {
   private final UserRepository userRepository;
   private final CharacterInfoRepository characterInfoRepository;
   private final LostArkApiService lostArkApiService;
+  private final PointService pointService;
   
   private final int passwordLength = 16;
   
@@ -93,6 +95,9 @@ public class UserServiceImpl implements UserService {
     if (!this.passwordEncoder.matches(request.getPassword(), user.getPassword())) {
       throw new LostArkMarketplaceException(HttpStatusCode.UNAUTHORIZED);
     }
+    
+    // 일일 로그인 보상 지급
+    this.pointService.awardDailyLoginBonus(user);
     
     // 인증 시도 후 성공 시 JWT 반환
     try {

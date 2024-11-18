@@ -13,8 +13,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.lostark.marketplace.model.CartDto;
 import com.lostark.marketplace.model.CartItemRequestDto;
+import com.lostark.marketplace.model.CheckoutRequestDto;
 import com.lostark.marketplace.model.CheckoutResponseDto;
 import com.lostark.marketplace.service.CartService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -54,9 +56,9 @@ public class CartController {
   
   @PostMapping("/checkout")
   @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-  public ResponseEntity<CheckoutResponseDto> checkoutCart() {
+  public ResponseEntity<CheckoutResponseDto> checkoutCart(@Valid @RequestBody CheckoutRequestDto request) {
     String username = SecurityContextHolder.getContext().getAuthentication().getName();
-    return ResponseEntity.ok(this.cartService.checkoutCart(username));
+    return ResponseEntity.ok(this.cartService.checkoutCart(username, request.getUsedGold(), request.getUsedPoint()));
   }
   
 }

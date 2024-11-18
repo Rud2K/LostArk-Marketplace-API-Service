@@ -19,7 +19,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Entity(name = "order_manager")
+@Entity(name = "cart_item")
 public class CartItemEntity {
   
   @Id
